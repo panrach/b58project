@@ -1,0 +1,174 @@
+2.2 - 2.3
+things to think about
+1. how to store the blocks
+2. how to decide when a piece has been inserting
+3. want to store the current orientation and x-y coordinate of block in memory
+will use in drawing functions
+4. how to prevent rotate into other pieces
+
+2.4
+1. when the block collides with the playing board or other blocks
+2. colliding vertically with opther blocks => it is fixed in place and a new block is generated
+3. horizontal collision => won't move in that direction and not fixed in place
+4. player can still move the piece after horizontal collisions with other objects
+
+options for storing playing field and checking collisions:
+1. store a representation of the playing field as a grid of occupied and not occupied spaces
+and have a function that draws the game from this representation
+2. Store the raw pixels and alter that as the game is played
+
+2.5 game over
+no more room at top to make tetris block -> lose
+
+technical background
+displaying: framebuffer
+which is an area in memory
+2d array of units, each unit is a pixel with a color
+
+storage of units
+- units are stored as an array in memory
+4 byte word is mapped to a single unit 
+^ called framebuffer
+
+address of frame buffer array is the base address of the display
+
+colors
+- use RGB
+
+displaying
+MARS bitmap display shows you the mapping from framebuffer to pixels on a screen
+
+how to use
+- specify the actual screen and height width
+- specify the dimensions of the overall display
+sizes must match with assembly code
+- tell MARS the base address for the framebuffer 
+connect to MIPS
+
+RECCOMENDATION: use  0x10008000 as the abse address but only if the framebuffer has 8192 cells or fewer
+enough for 182 x 64 or 64 x 128
+
+TO DO: Try the demo in the starter code
+
+3.2: keyboard
+input: MARS Keyboard and MMIO simulator
+tools ->keyboard and MMIO simulator
+
+to use it when playing: click inside KEYBOARD 
+bitmap display, "Connect to MIPS"
+do not need to support multiple keys being pressed at once
+
+fetching memory input  
+memory-mapped IO for a keyboard
+key is pressed (keystroke event), the processor will tell you bby setting a word in memory to a value of
+
+1. to check for keypress, check the contents of that memory locations
+li $t9, 0xffff0000 
+lw $t8, 0($t9)
+beq $t8, 1, keypress_happened
+
+2. if key value of 1: the ascii value of that key was pressed and will be in memory
+checking if a was pressed 
+lw $t2, 4($t9) # this assumes $t9 is set to 0xfff0000 from before
+beq $t2, 0x61, respond_to_a # ASCII code of 'a' is 0x61 or 97 in decimal
+
+USEFUL SYSCALLS
+syscall will be needed for random number and sleep function
+
+to invoke the random number generator: service 41 to produce a rando integer with no limit
+service 42 to produce a random int within a given range
+
+RANDOM NUMBER
+li $v0, 42 # service 42
+li $a0, 0 li # put the id of the rando num gen in a0 
+# 0 is the number of gens u need
+$a1, 28 # enter the max integer
+syscall 
+
+SLEEP
+32 means sleep
+li $v0, 32 li $a0, 1000 # Wait one second (1000 milliseconds) syscall
+
+FOR JANANI
+go to 4.1 and do the stuff there
+
+4.2 MUST PUT THIS AT THE BEGINNING OF THE CODE REFER TO NOTES
+
+MILESTONES
+The project is divided into five milestones:
+Milestone 1: Draw the scene (as in 2.1)
+Milestone 2: Implement movement and other controls
+Milestone 3: Collision Detection 
+Milestone 4: Game features
+Milestone 5: More game features
+
+Milestone 1: draw the scene 
+a. draw the three walls of the playing area 
+b. within the playing area, draw a grid background that shows where the blocks of each tetromino will allign
+c. draw the first tetrmino 
+
+Milestone 2: implement movement and other controls 
+a. move the tetromino in response to WASD 
+b. repaint the screen in a loop to visualize movement 
+c. allow player to quit
+
+milestone 3: collision
+a. When a tetromino moves against the left or right side wall keep it in the same location 
+b. if the teromino lands on top of another piece or on the bottom of the playing area, leave it there and make a new tetromino
+c. line clearing: remove the blocks 
+
+NEXT STEPS: 
+- choose bitmap config (width and height in pixels)
+should be preamble of tetris.asm along with name and student number 
+
+- decide what will be stored in money and how it will be laid out 
+have this ready for demo 
+
+- translate any sprites or pixel grids from your plan into .data 
+- check memory to make sure it matches 
+
+- milestone 2
+- milestone 3
+
+EASY FEATURES WE ARE GONNA DO
+If allowed overlap:
+1. Implement gravity, so that each second that passes will automatically move the tetromino
+down one row.
+2. Assuming that gravity has been implemented, have the speed of gravity increase gradually over
+time, or after the player completes a certain number of rows
+6. Add levels to the game that are triggered after the player completed a certain number of rows, where the next level is more difficult in some way than the previous one
+7. start the level with 5 random unfinished rows on the bottom of the playing field
+8. Show an outline of where the piece will end up if you drop it (see Figure 2.2) 
+11. Assuming that you’ve implemented the full set of Tetrominoes, make sure that each tetromino
+type is a different colour.
+
+HARD REATURES WE ARE GONNA DO
+1. Track and display the player’s score, which is based on how many lines have been completed so far. This score needs to be displayed in pixels, not on the console display
+2. Implement full set 
+
+TIPS 
+General loop:
+1. Check for keyboard input 
+2. Check for collision events 
+3. Update tetrmino location/ orientation 
+4. Redraw the screen 
+5. Sleep 
+6. Go back to step 1
+
+1. Use graph paper 
+2. Spend time coming up with a good memory layout 
+3. Use memory for variables 
+4. Make reusable functions
+5. Create meaningful labels for variables, functions, and branch targets 
+6. Comments 
+7. Use breaks
+
+Specific to tetris: 
+1. For storing the current tetromino, store them into memory and refer to the memory location of a particular shape 
+2. Store past playing field state
+3. Check for collisions before drawing the tetromino 
+That means looking at the four blocks that make up each tetromino and checking if the position
+underneath each block is empty (the player is moving down) or its against the wall (if the player is moving to the side)
+- this should be a seperate function
+
+Need to finish C1 - C3 by July 29
