@@ -92,7 +92,8 @@ li $v0, 32 li $a0, 1000 # Wait one second (1000 milliseconds) syscall
 FOR JANANI
 go to 4.1 and do the stuff there
 
-4.2 MUST PUT THIS AT THE BEGINNING OF THE CODE REFER TO NOTES
+4.2 MUST PUT THIS AT THE BEGINNING OF THE CODE
+REFER TO NOTES
 
 MILESTONES
 The project is divided into five milestones:
@@ -172,3 +173,18 @@ underneath each block is empty (the player is moving down) or its against the wa
 - this should be a seperate function
 
 Need to finish C1 - C3 by July 29
+
+
+Planning
+Milestone 1
+C code
+for (int cur_row = 0; i < row_size; ++cur_row) {
+    for (int cur_col = 0; j < col_size; ++cur_col) {
+        if (same_parity(cur_row, cur_col)) {
+            matrix[cur_row][cur_col] = light;
+        }
+        else {
+            matrix[cur_row][cur_col] = dark
+        }
+    }
+}
