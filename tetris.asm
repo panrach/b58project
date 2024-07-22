@@ -40,10 +40,6 @@
 ##############################################################################
 
 .data
-    	light: .word 0x808080            # Light color
-    	dark: .word 0xA9A9A9             # Dark color
-    	row_size: .word 32               # Number of units per row (128/8)
-    	col_size: .word 16               # Number of units per column (256/8)
 
 ##############################################################################
 # Immutable Data
@@ -58,6 +54,8 @@ ADDR_KBRD:
 .eqv ROW_SIZE 32	# Number of units per row (128/8)
 .eqv COL_SIZE 16	# Number of units per col (256/8)
 .eqv UNIT_SIZE 4	# Size of each unit in bytes
+.eqv GRID_DARK 0xA9A9A9
+.eqv GRID_LIGHT 0x808080 
 
 ##############################################################################
 # Mutable Data
@@ -74,9 +72,9 @@ main:
 
 draw_background:
     	# initialize cur row index to 0
-    	li $t5, 0                       # t5 = cur_row = 0
+    	li $t5, 0	# t5 = cur_row = 0
     	# initialize cur column index to 0
-    	li $t6, 0                       # t6 = cur_col = 0
+    	li $t6, 0	# t6 = cur_col = 0
     	
 
 inner_loop:
@@ -85,7 +83,7 @@ inner_loop:
 	li $t3, ROW_SIZE                # t3 = display width in units
 	li $t4, COL_SIZE                # t4 = display height in units
 	
-	# calculate the address of the current unit
+	# calculate the address of the current unit in t7
 	li $t8, UNIT_SIZE			# t8 = unit size (4 bytes)
 	# base + ((row index * number of columns) + column index) * pixel size 
     	# row index * number of columns
@@ -98,19 +96,22 @@ inner_loop:
     	add $t7, $t7, $t0
     	
     	# t5 cur row, t6 cur col
-    	# t8 0 if even, 1 otherwise
+    	# if cur row and col are same parity, dark unit
+    		# i.e. cur row + cur col = odd number
+    	# if dif parity, dark unit
     	add $t8, $t5, $t6
     	andi $t8, $t8, 1
     	beq $t8, 1, dark_if
     	
     	# else even, light
-    	lw $t2, light                   # t2 = light color
-    	sw $t2, 0($t7)
+    	li $t2, GRID_LIGHT		# t2 = light color
+    	sw $t2, 0($t7)		# make unit light colour
     	j next_unit
     	
 	dark_if:
-    		lw $t1, dark            # t1 = dark color
-    		sw $t1, 0($t7)
+    		li $t1, GRID_DARK	# t1 = dark color
+    		sw $t1, 0($t7)	# make unit dark colour
+    		j next_unit
     	
 next_unit:
     	# move to the next unit
@@ -126,7 +127,7 @@ next_unit:
     	blt $t5, $t3, inner_loop
 
     	# Exit the program
-    	li $v0, 10                    # Exit system call
+    	li $v0, 10
     	syscall
 game_loop:
 	# 1a. Check if key has been pressed
