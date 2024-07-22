@@ -86,7 +86,7 @@ draw_background:
     	li $t6, 0	# t6 = cur_col = 0
     	
 
-inner_loop:
+bg_loop:
 	# initalize values for calculating address of current unit
 	lw $t0, ADDR_DSPL               # t0 = base display address
 	li $t3, ROW_SIZE                # t3 = display width in units
@@ -144,13 +144,13 @@ next_unit:
     	# increment column index
     	addi $t6, $t6, 1
     	# if the column index is less than the column size, then continue
-    	blt $t6, $t4, inner_loop
+    	blt $t6, $t4, bg_loop
     	
     	# increment row
     	addi $t5, $t5, 1
     	li $t6, 0                      # t6 = cur_col = 0
 
-    	blt $t5, $t3, inner_loop
+    	blt $t5, $t3, bg_loop
 
     	# Exit the program
     	li $v0, 10
