@@ -40,7 +40,6 @@
 ##############################################################################
 
 .data
-    	base_address: .word 0x10008000   # Base address for the display
     	light: .word 0x808080            # Light color
     	dark: .word 0xA9A9A9             # Dark color
     	row_size: .word 32               # Number of units per row (128/8)
@@ -56,6 +55,10 @@ ADDR_DSPL:
 ADDR_KBRD:
     .word 0xffff0000
 
+.eqv ROW_SIZE 32	# Number of units per row (128/8)
+.eqv COL_SIZE 16	# Number of units per col (256/8)
+.eqv UNIT_SIZE 4	# Size of each unit in bytes
+
 ##############################################################################
 # Mutable Data
 ##############################################################################
@@ -67,25 +70,23 @@ ADDR_KBRD:
     .globl main
 
 main:
-    	# load dimensions and base address
-    	lw $t0, base_address            # t0 = base_address
-    	lw $t1, dark                    # t1 = dark color
-    	lw $t2, light                   # t2 = light color
-    	lw $t3, row_size                # t3 = display width in units
-    	lw $t4, col_size                # t4 = display height in units
-
-    	# initialize row count
-    	li $t5, 0                       # t5 = cur_row = 0
+    	
 
 draw_background:
-
-outer_loop:
-    	# initialize column index to 0
-    	li $t6, 0                      # t6 = cur_col = 0
+    	# initialize cur row index to 0
+    	li $t5, 0                       # t5 = cur_row = 0
+    	# initialize cur column index to 0
+    	li $t6, 0                       # t6 = cur_col = 0
+    	
 
 inner_loop:
-	# calculate the address of the current pixel
-	li $t8, 4			# t8 = pixel size (4 bytes)
+	# initalize values for calculating address of current unit
+	lw $t0, ADDR_DSPL               # t0 = base display address
+	li $t3, ROW_SIZE                # t3 = display width in units
+	li $t4, COL_SIZE                # t4 = display height in units
+	
+	# calculate the address of the current unit
+	li $t8, UNIT_SIZE			# t8 = unit size (4 bytes)
 	# base + ((row index * number of columns) + column index) * pixel size 
     	# row index * number of columns
     	mul $t7, $t5, $t4
@@ -100,14 +101,16 @@ inner_loop:
     	# t8 0 if even, 1 otherwise
     	add $t8, $t5, $t6
     	andi $t8, $t8, 1
-    	beq $t8, 1, dark_odd
+    	beq $t8, 1, dark_if
     	
     	# else even, light
+    	lw $t2, light                   # t2 = light color
     	sw $t2, 0($t7)
     	j next_unit
     	
-dark_odd:
-    	sw $t1, 0($t7)
+	dark_if:
+    		lw $t1, dark            # t1 = dark color
+    		sw $t1, 0($t7)
     	
 next_unit:
     	# move to the next unit
@@ -118,7 +121,9 @@ next_unit:
     	
     	# increment row
     	addi $t5, $t5, 1
-    	blt $t5, $t3, outer_loop
+    	li $t6, 0                      # t6 = cur_col = 0
+
+    	blt $t5, $t3, inner_loop
 
     	# Exit the program
     	li $v0, 10                    # Exit system call
