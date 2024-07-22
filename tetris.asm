@@ -51,11 +51,20 @@ ADDR_DSPL:
 ADDR_KBRD:
     .word 0xffff0000
 
+
+.eqv UNIT_SIZE 4	# Size of each unit in bytes
+
+.eqv GRID_DARK 0xA9A9A9	# dark colour in grid
+.eqv GRID_LIGHT 0x808080 	# light colour in grid 
+.eqv BORDER_BLACK 0x000000	# black for border
+
 .eqv ROW_SIZE 32	# Number of units per row (128/8)
 .eqv COL_SIZE 16	# Number of units per col (256/8)
-.eqv UNIT_SIZE 4	# Size of each unit in bytes
-.eqv GRID_DARK 0xA9A9A9
-.eqv GRID_LIGHT 0x808080 
+
+.eqv TOP_BORDER 6	# row index that top border ends
+.eqv BOTTOM_BORDER 31	# row index that bottom border starts 
+.eqv LEFT_BORDER 0	# col index that left border ends
+.eqv RIGHT_BORDER 15	# col index that left border starts
 
 ##############################################################################
 # Mutable Data
@@ -96,6 +105,18 @@ inner_loop:
     	add $t7, $t7, $t0
     	
     	# t5 cur row, t6 cur col
+    	
+    	# black if part of border, i.e.
+    		# cur row <= TOP_BORDER
+    		# cur row >= BOTTOM_BORDER
+    		# cur col <= LEFT_BORDER
+    		# cur col >= RIGHT_BORDER
+    	ble $t5, TOP_BORDER, black_if
+    	bge $t5, BOTTOM_BORDER, black_if
+    	ble $t6, LEFT_BORDER black_if
+    	bge $t6, RIGHT_BORDER, black_if
+    	
+    	# if not part of border, it is part of the grid
     	# if cur row and col are same parity, dark unit
     		# i.e. cur row + cur col = odd number
     	# if dif parity, dark unit
@@ -104,13 +125,18 @@ inner_loop:
     	beq $t8, 1, dark_if
     	
     	# else even, light
-    	li $t2, GRID_LIGHT		# t2 = light color
+    	li $t2, GRID_LIGHT	# t2 = light color
     	sw $t2, 0($t7)		# make unit light colour
     	j next_unit
     	
 	dark_if:
     		li $t1, GRID_DARK	# t1 = dark color
-    		sw $t1, 0($t7)	# make unit dark colour
+    		sw $t1, 0($t7)		# make unit dark colour
+    		j next_unit
+    	
+    	black_if:
+    		li $t1, BORDER_BLACK	# t1 = dark color
+    		sw $t1, 0($t7)		# make unit dark colour
     		j next_unit
     	
 next_unit:
