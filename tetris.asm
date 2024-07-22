@@ -39,12 +39,13 @@
 # hi janani
 ##############################################################################
 
-  .data
+.data
     	base_address: .word 0x10008000   # Base address for the display
     	light: .word 0x808080            # Light color
     	dark: .word 0xA9A9A9             # Dark color
-    	row_size: .word 128             # Number of rows
-   	col_size: .word 64               # Number of columns
+    	row_size: .word 32               # Number of units per row (128/8)
+    	col_size: .word 16               # Number of units per column (256/8)
+
 ##############################################################################
 # Immutable Data
 ##############################################################################
@@ -66,27 +67,29 @@ ADDR_KBRD:
     .globl main
 
 main:
-    	# Load dimensions and base address
+    	# load dimensions and base address
     	lw $t0, base_address            # t0 = base_address
     	lw $t1, dark                    # t1 = dark color
     	lw $t2, light                   # t2 = light color
-    	lw $t3, row_size           	# t3 = display width in pixels
-    	lw $t4, col_size         	# t4 = display height in pixels
+    	lw $t3, row_size                # t3 = display width in units
+    	lw $t4, col_size                # t4 = display height in units
 
-    	# Initialize row count
+    	# initialize row count
     	li $t5, 0                       # t5 = cur_row = 0
 
+draw_background:
+
 outer_loop:
-    	# Initialize column index to 0
+    	# initialize column index to 0
     	li $t6, 0                      # t6 = cur_col = 0
 
 inner_loop:
-	#calculate the address of the current pixel
+	# calculate the address of the current pixel
 	li $t8, 4			# t8 = pixel size (4 bytes)
 	# base + ((row index * number of columns) + column index) * pixel size 
     	# row index * number of columns
     	mul $t7, $t5, $t4
-    	#(row index * num columns) + column index
+    	# (row index * num columns) + column index
     	add $t7, $t7, $t6
     	# t7 * pixel size
     	mul $t7, $t7, $t8
@@ -103,18 +106,14 @@ inner_loop:
     	sw $t2, 0($t7)
     	j next_unit
     	
-    	dark_odd:
-    		sw $t1, 0($t7)
-    		j next_unit
+dark_odd:
+    	sw $t1, 0($t7)
     	
-    	
-    	#sw $t1, 0($t7)                # Store dark color
-    	#j next_unit                  # Jump to next pixel
-
 next_unit:
-    	# Move to the next pixel
+    	# move to the next unit
     	# increment column index
     	addi $t6, $t6, 1
+    	# if the column index is less than the column size, then continue
     	blt $t6, $t4, inner_loop
     	
     	# increment row
