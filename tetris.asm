@@ -43,7 +43,7 @@
     	base_address: .word 0x10008000   # Base address for the display
     	light: .word 0x808080            # Light color
     	dark: .word 0xA9A9A9             # Dark color
-    	row_size: .word 128              # Number of rows
+    	row_size: .word 128             # Number of rows
    	col_size: .word 64               # Number of columns
 ##############################################################################
 # Immutable Data
@@ -94,10 +94,26 @@ inner_loop:
     	# add offset to base
     	add $t7, $t7, $t0
     	
-    	sw $t1, 0($t7)                # Store dark color
-    	j next_pixel                  # Jump to next pixel
+    	# t5 cur row, t6 cur col
+    	# t8 0 if even, 1 otherwise
+    	add $t8, $t5, $t6
+    	andi $t8, $t8, 1
+    	
+    	beq $t8, 1, dark_odd
+    	
+    	# else even, light
+    	sw $t2, 0($t7)
+    	j next_unit
+    	
+    	dark_odd:
+    		sw $t1, 0($t7)
+    		j next_unit
+    	
+    	
+    	#sw $t1, 0($t7)                # Store dark color
+    	#j next_unit                  # Jump to next pixel
 
-next_pixel:
+next_unit:
     	# Move to the next pixel
     	# increment column index
     	addi $t6, $t6, 1
