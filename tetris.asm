@@ -70,43 +70,42 @@ main:
     	lw $t0, base_address            # t0 = base_address
     	lw $t1, dark                    # t1 = dark color
     	lw $t2, light                   # t2 = light color
-    	lw $t3, row_size          # t3 = display width in pixels
-    	lw $t4, col_size         # t4 = display height in pixels
+    	lw $t3, row_size           	# t3 = display width in pixels
+    	lw $t4, col_size         	# t4 = display height in pixels
+    	li $t8, 4			# t8 = pixel size (4 bytes)
 
     	# Initialize row count
     	li $t5, 0                       # t5 = cur_row = 0
 
 outer_loop:
-    	# Calculate row start address
-    	mul $t6, $t5, $t3              # t6 = cur_row * display_width ( the current number of pixels from start to current row)
-    	sll $t6, $t6, 2                # t6 = cur_row * display_width * 4 (byte offset)
-    	add $t6, $t6, $t0              # t6 = base_address + offset
-
     	# Initialize column index to 0
-    	li $t7, 0                      # t7 = cur_col = 0
+    	li $t6, 0                      # t6 = cur_col = 0
 
 inner_loop:
-    	# Determine color for the current position
-    	# row and col same parity: dark, different parity: light
-	# t8 = cur_row % 2 (0 if even, 1 if odd)
-    	# t9 = cur_col % 2 (0 if even, 1 if odd)
-    	# result = (cur_row % 2) XOR (cur_col % 2)
-    	beq $t8, $zero, use_dark     # If result is 0, use dark color
-    	sw $t2, 0($t6)                # Store light color
+	#calculate the address of the current pixel
+	
+	# base + ((row index * number of columns) + column index) * pixel size 
+    	# row index * number of columns
+    	mul $t7, $t5, $t4
+    	#(row index * num columns) + column index
+    	add $t7, $t7, $t6
+    	# t7 * pixel size
+    	mul $t7, $t7, $t8
+    	# add offset to base
+    	add $t7, $t7, $t0
+    	
+    	sw $t1, 0($t7)                # Store dark color
     	j next_pixel                  # Jump to next pixel
-
-use_dark:
-   	sw $t1, 0($t6)                # Store dark color
 
 next_pixel:
     	# Move to the next pixel
-    	addi $t6, $t6, 4              # Move to the next pixel (4 bytes)
-    	addi $t7, $t7, 1              # Increment column index
-    	blt $t7, $t3, inner_loop      # Continue with the next column if cur_col < display_width
-
-    	# Move to the next row
-    	addi $t5, $t5, 1              # Increment row index
-    	blt $t5, $t4, outer_loop      # Continue with the next row if cur_row < display_height
+    	# increment column index
+    	addi $t6, $t6, 1
+    	blt $t6, $t4, inner_loop
+    	
+    	# increment row
+    	addi $t5, $t5, 1
+    	blt $t5, $t3, outer_loop
 
     	# Exit the program
     	li $v0, 10                    # Exit system call
