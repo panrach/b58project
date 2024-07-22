@@ -72,7 +72,6 @@ main:
     	lw $t2, light                   # t2 = light color
     	lw $t3, row_size           	# t3 = display width in pixels
     	lw $t4, col_size         	# t4 = display height in pixels
-    	li $t8, 4			# t8 = pixel size (4 bytes)
 
     	# Initialize row count
     	li $t5, 0                       # t5 = cur_row = 0
@@ -83,7 +82,7 @@ outer_loop:
 
 inner_loop:
 	#calculate the address of the current pixel
-	
+	li $t8, 4			# t8 = pixel size (4 bytes)
 	# base + ((row index * number of columns) + column index) * pixel size 
     	# row index * number of columns
     	mul $t7, $t5, $t4
@@ -98,7 +97,6 @@ inner_loop:
     	# t8 0 if even, 1 otherwise
     	add $t8, $t5, $t6
     	andi $t8, $t8, 1
-    	
     	beq $t8, 1, dark_odd
     	
     	# else even, light
