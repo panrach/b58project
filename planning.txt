@@ -177,14 +177,18 @@ Need to finish C1 - C3 by July 29
 
 Planning
 Milestone 1
-C code
-for (int cur_row = 0; i < row_size; ++cur_row) {
-    for (int cur_col = 0; j < col_size; ++cur_col) {
-        if (same_parity(cur_row, cur_col)) {
-            matrix[cur_row][cur_col] = light;
-        }
-        else {
-            matrix[cur_row][cur_col] = dark
-        }
-    }
-}
+prereq: no collision
+7 <= row <= 30
+1 <= col <= 14
+function: draw block
+takes in an address to a block, row, column and draws it on the playing board
+pop off the column, row, block 
+return nothing
+
+for the future: 
+function: collision detection
+if no collision: return 0
+if vertical collision: return 1
+if horizontal collision: return 2
+
+only call draw block if no collision
