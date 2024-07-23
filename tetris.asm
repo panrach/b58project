@@ -39,27 +39,7 @@
 # hi janani
 ##############################################################################
 
-.data
-	L0_BLOCK: 
-		.byte 0 1 0 0
-		.byte 0 1 0 0
-		.byte 0 1 1 0
-		.byte 0 0 0 0
-	L1_block: 
-		.byte 0 0 0 0
-		.byte 0 1 1 1
-		.byte 0 1 0 0
-		.byte 0 0 0 0
-	L2_block: 
-		.byte 0 0 0 0
-		.byte 0 1 1 0
-		.byte 0 0 1 0
-		.byte 0 0 1 0
-	L3_block: 
-		.byte 0 0 0 0
-		.byte 0 0 1 0
-		.byte 1 1 1 0
-		.byte 0 0 0 0
+	.data
 
 ##############################################################################
 # Immutable Data
@@ -71,6 +51,27 @@ ADDR_DSPL:
 ADDR_KBRD:
     .word 0xffff0000
 
+# L block and all its rotations
+L0_BLOCK: 
+	.byte 0 1 0 0
+	.byte 0 1 0 0
+	.byte 0 1 1 0
+	.byte 0 0 0 0
+L1_BLOCK: 
+	.byte 0 0 0 0
+	.byte 0 1 1 1
+	.byte 0 1 0 0
+	.byte 0 0 0 0
+L2_BLOCK: 
+	.byte 0 0 0 0
+	.byte 0 1 1 0
+	.byte 0 0 1 0
+	.byte 0 0 1 0
+L3_BLOCK: 
+	.byte 0 0 0 0
+	.byte 0 0 1 0
+	.byte 1 1 1 0
+	.byte 0 0 0 0
 
 .eqv ADDR_DSPL_CONST 0x10008000
 .eqv UNIT_SIZE 4	# Size of each unit in bytes
@@ -110,17 +111,27 @@ main:
 	
 	# make room for row
 	addi $sp, $sp, -4
-	li $t0, 8
+	li $t0, 10
 	sw $t0, 0($sp)
 	
 	# make room for column
 	addi $sp, $sp, -4
-	li $t1, 4
+	li $t1, 5
 	sw $t1, 0($sp)
 	
 	jal draw_tet
 	
+game_loop:
+	# 1a. Check if key has been pressed
+    	# 1b. Check which key has been pressed
+    	# 2a. Check for collisions
+	# 2b. Update locations (cur tet row, cur tet col)
+	# 3. Draw the screen
+	# 4. Sleep
 	
+
+    #5. Go back to 1
+    b game_loop	
 
 EXIT: 
 	# Exit the program
@@ -201,34 +212,6 @@ draw_background:
     		blt $t5, $t3, bg_loop
     	
     	jr $ra
-    	
-	
-#game_loop:
-	# 1a. Check if key has been pressed
-    	# 1b. Check which key has been pressed
-    	# 2a. Check for collisions
-	# 2b. Update locations (paddle, ball)
-	# 3. Draw the screen
-	# 4. Sleep
-	
-	# set up to call draw_tet
-	# move up a word to give space for the block address
-	#addi $sp, $sp, -4
-	#lw $sp, L0_BLOCK
-	
-	# make room for row
-	#addi $sp, $sp, -4
-	#li $sp, 8
-	
-	# make room for column
-	#addi $sp, $sp, -4
-	#li $sp, 4
-	
-	#jal draw_tet
-	
-
-    #5. Go back to 1
-    #b game_loop
     
 draw_tet:
 	lw $t0, ADDR_DSPL
@@ -256,8 +239,6 @@ draw_tet:
 	# t7 = block_array[block_counter]
 	# t8 = start row + row_offset
 	# t9 = start col + col_offset
-	
-	# calculate the address
 	
 	# initialize row counter
 	li $t4, -1
@@ -304,9 +285,6 @@ draw_tet:
 				sw $t6, 0($t0)
 				j col_loop
 			
-			
-	
-	
 	exit_draw_tet:
 		jr $ra
     

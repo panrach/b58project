@@ -132,16 +132,13 @@ have this ready for demo
 - milestone 3
 
 EASY FEATURES WE ARE GONNA DO
-If allowed overlap:
 1. Implement gravity, so that each second that passes will automatically move the tetromino
 down one row.
 2. Assuming that gravity has been implemented, have the speed of gravity increase gradually over
 time, or after the player completes a certain number of rows
 6. Add levels to the game that are triggered after the player completed a certain number of rows, where the next level is more difficult in some way than the previous one
 7. start the level with 5 random unfinished rows on the bottom of the playing field
-8. Show an outline of where the piece will end up if you drop it (see Figure 2.2) 
-11. Assuming that you’ve implemented the full set of Tetrominoes, make sure that each tetromino
-type is a different colour.
+11. Assuming that you’ve implemented the full set of Tetrominoes, make sure that each tetromino type is a different colour.
 
 HARD REATURES WE ARE GONNA DO
 1. Track and display the player’s score, which is based on how many lines have been completed so far. This score needs to be displayed in pixels, not on the console display
@@ -192,3 +189,39 @@ if vertical collision: return 1
 if horizontal collision: return 2
 
 only call draw block if no collision
+
+
+FUNCTIONS WE WANT: 
+- rotate
+    - takes in address of stored tetrominoe, return address of clockwise roation of it
+    - will be kinda annoying to write with a lot of if statements fyi
+    - smth like if argument = L0_block, return L1_block, if argument = L1_block, return L2_block etc. for all combos
+    - could also take in an argument of what shape it is to make it slight more efficient (i.e. L, I, etc.)
+- draw_playing_field
+    - should store playing field as a large 16 by 32 byte array in data (only contains the grid)
+    - when translating units in playing field to units on display, 
+        row_display = row_playfield + left_border + 1, 
+        col_display = col_playfield + top_border + 1 
+    - 0 means unoccupied
+    - non-zero is occupied, each number is associated with a colour
+- collision dectection
+    - would need to take in what key was pressed or if no key was pressed (-1)
+    - collision is defined as trying to occupy the space that is already occupied
+        - can define this as trying to move somethat isnt grid_dark or grid_light
+        - so can 
+    - horizontal collision only occurs you hit smth when you tried to move right or left, i.e. keyboard input 'a' or 'd'
+        - return 2
+    - vertical is collision but not horizontal
+        - return 1
+    - no collision
+        - return 0
+- line clear 
+    - check for full lines after block is placed 
+    - check every row, if entire row is 1s, replace with 0s, and shift everything above that down by row size addresses
+      and add an all 0 row to top
+
+Milestone 2: Implement movement and other controls
+    (a) Move the tetromino in response to the W, A, S and D keys (to make the tetromino move
+        left and right, rotate and drop).
+    (b) Re-paint the screen in a loop to visualize movement.
+    (c) Allow the player to quit the game.
