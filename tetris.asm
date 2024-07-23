@@ -1,18 +1,18 @@
 #####################################################################
 # CSCB58 Summer 2024 Assembly Final Project - UTSC
-# Student1: Name, Student Number, UTorID, official email
-# Student2: Name, Student Number, UTorID, official email
+# Student1: Janani Gurram, 1009109778, gurramja, j.gurram@utoronto.ca
+# Student2: Rachel Pan, 1009041145, panrach1, r.pan@mail.utoronto.ca
 #
 # Bitmap Display Configuration:
-# - Unit width in pixels: 8 (update this as needed) 
-# - Unit height in pixels: 8 (update this as needed)
-# - Display width in pixels:  64( update this as needed)
-# - Display height in pixels: 64 (update this as needed)
+# - Unit width in pixels: 8 
+# - Unit height in pixels: 8
+# - Display width in pixels:  128
+# - Display height in pixels: 256
 # - Base Address for Display: 0x10008000 ($gp)
 #
 # Which milestones have been reached in this submission?
 # (See the assignment handout for descriptions of the milestones)
-# - Milestone 1/2/3/4/5 (choose the one the applies)
+# - Milestone 1
 #
 # Which approved features have been implemented?
 # (See the assignment handout for the list of features)
