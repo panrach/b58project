@@ -51,6 +51,11 @@ ADDR_DSPL:
 ADDR_KBRD:
     .word 0xffff0000
 
+# to store playing field
+# 0 if unoccupied
+# number reping colour is occupied
+playing_field: .byte 0:512
+
 # L block and all its rotations
 L0_BLOCK: 
 	.byte 0 1 0 0
@@ -80,8 +85,10 @@ L3_BLOCK:
 .eqv GRID_LIGHT 0x808080 	# light colour in grid 
 .eqv BORDER_BLACK 0x000000	# black for border
 
-.eqv ROW_SIZE 32	# Number of units per row (128/8)
-.eqv COL_SIZE 16	# Number of units per col (256/8)
+.eqv ROW_SIZE 32	# Number of rows (256/8)
+.eqv COL_SIZE 16	# Number of col (128/8)
+.eqv GRID_ROW_SIZE 24  # Number of rows in grid (row_size - borders)
+.eqv GRID_COL_SIZE 14  # Number of cols in grid (col_size - borders)
 
 .eqv TOP_BORDER 6	# row index that top border ends
 .eqv BOTTOM_BORDER 31	# row index that bottom border starts 
@@ -103,35 +110,101 @@ L3_BLOCK:
 main:  	
 	jal draw_background
 	
+	# the block I am generating
+	# would be randomized in final
+	la $s2, L0_BLOCK
+	
+	# set up starting row and col
+	li $s0, 0 # row to where tet starts off
+	li $s1, 5 # col to where tet starts off
+	
 	# set up to call draw_tet
 	# move up a word to give space for the block address
 	addi $sp, $sp, -4
-	la $t3, L0_BLOCK
-	sw $t3, 0($sp)
+	sw $s2, 0($sp)
 	
 	# make room for row
 	addi $sp, $sp, -4
-	li $t0, 10
-	sw $t0, 0($sp)
+	sw $s0, 0($sp)
 	
 	# make room for column
 	addi $sp, $sp, -4
-	li $t1, 5
-	sw $t1, 0($sp)
+	sw $s1, 0($sp)
 	
 	jal draw_tet
 	
-game_loop:
-	# 1a. Check if key has been pressed
-    	# 1b. Check which key has been pressed
-    	# 2a. Check for collisions
-	# 2b. Update locations (cur tet row, cur tet col)
-	# 3. Draw the screen
-	# 4. Sleep
+	# Sleep
+	li $v0, 32
+	li $a0, 500 # Wait one second (1000 milliseconds)
+	syscall
 	
-
-    #5. Go back to 1
-    b game_loop	
+	
+	
+game_loop:
+	# s0 -- row in grid (starts from 0) where top left corner of tet is
+	# s1 -- col in grid (starts from 0) where top left corner of tet is
+	# s2 -- tet we are drawing
+	
+	
+	# 1a. Check if key has been pressed
+		# continuely check if its has been pressed
+		# if yes, then check what key
+    	# 1b. Check which key has been pressed
+    		# if invalid, go back to checking for press, branch back
+    		# if valid key, update s0 (row), s1 (col) of current tet appropiately based on key
+    		# if valid key is w for rotate, rotation function to change value of what we are tet we are drawing (s2)
+    	
+    	# currently increment row to move down
+    	# you would do different things to row and col based on what key was pressed
+	addi $s0, $s0, 1
+	
+    	# 2a. Check for collisions
+    		# collision takes in what key has been pressed + shape + cur row in grid and cur col in grid 
+    		# for every block in shape (loop similar to draw tet), 
+    			# if 0 move on
+    			# if 1 calc where it will move which is row_in_block + row_in_grid, col_in_block + col_in_grid
+    				# calc offset based on these new row and new col (*1 instead of 4 in this case)
+    				# checks byte at playing field + this offset = 1 then collision
+    				# if key pressed is a or d then this is a horizonal collision, return 2
+    				# otherwise vertical collision, return 1
+    		
+	# 2b. Update locations (cur tet row, cur tet col)
+		# takes in key pressed, output of collision check
+		# if collision returned 0, then move based on key pressed, i.e. update row and col to be sent to draw functions
+		# if returned 2, don't move 
+		# if returned 1, cur block in cur position to playing field, generate new piece to put in s2
+	
+	# 3. Draw the screen
+	jal draw_background
+	
+	# set up to call draw_tet
+	# move up a word to give space for the block address
+	addi $sp, $sp, -4
+	sw $s2, 0($sp)
+	
+	# make room for row
+	addi $sp, $sp, -4
+	#li $t0, 10
+	sw $s0, 0($sp)
+	
+	# make room for column
+	addi $sp, $sp, -4
+	#li $t1, 5
+	sw $s1, 0($sp)
+	
+	jal draw_tet
+	
+	# if end of screen, end
+	bge $s0, 20, EXIT
+	
+	# 4. Sleep
+	li $v0, 32
+	li $a0, 500 # Wait one second (1000 milliseconds)
+	syscall
+	
+	
+	#5. Go back to 1
+	b game_loop	
 
 EXIT: 
 	# Exit the program
@@ -216,12 +289,20 @@ draw_background:
 draw_tet:
 	lw $t0, ADDR_DSPL
 	
-	# pop column, put it in t1
+	# pop column index in grid, put it in t1
+	# add left_border + 1 to it so it is cur column on entire display
+	# not just relative to grid 
 	lw $t1, 0($sp)
+	addi $t1, $t1, LEFT_BORDER
+	addi $t1, $t1, 1
 	addi $sp, $sp, 4
 	
-	# pop row, put it in t2
+	# pop row in grid, put it in t2
+	# add top_border + 1 to it so it is row column on entire display
+	# not just relative to grid 
 	lw $t2, 0($sp)
+	addi $t2, $t2, TOP_BORDER
+	addi $t2, $t2, 1
 	addi $sp, $sp, 4
 	
 	# pop block address, put it in t3

@@ -175,8 +175,8 @@ Need to finish C1 - C3 by July 29
 Planning
 Milestone 1
 prereq: no collision
-7 <= row <= 30
-1 <= col <= 14
+7 <= row <= 30 (changed to relative to grid, no longer applies)
+1 <= col <= 14 (changed to realtive to grid, no longer applies)
 function: draw block
 takes in an address to a block, row, column and draws it on the playing board
 pop off the column, row, block 
