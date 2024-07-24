@@ -133,22 +133,26 @@ main:
 	
 	jal draw_tet
 	
+	jal game_loop
+	
 	# Sleep
 	li $v0, 32
 	li $a0, 500 # Wait one second (1000 milliseconds)
 	syscall
-	
-	
 	
 game_loop:
 	# s0 -- row in grid (starts from 0) where top left corner of tet is
 	# s1 -- col in grid (starts from 0) where top left corner of tet is
 	# s2 -- tet we are drawing
 	
-	
 	# 1a. Check if key has been pressed
 		# continuely check if its has been pressed
 		# if yes, then check what key
+	lw $t0, ADDR_KBRD
+	lw $t1,  0($t0) # load the value from the keyboard register
+	beq $t1, 1, keypress_happened
+	j game_loop # comment out to implement gravity
+	
     	# 1b. Check which key has been pressed
     		# if invalid, go back to checking for pressed, branch back
     		# if valid key, continue
@@ -208,7 +212,7 @@ game_loop:
 	
 	# 4. Sleep
 	li $v0, 32
-	li $a0, 500 # Wait one second (1000 milliseconds)
+	li $a0, 100 # Wait one second (1000 milliseconds)
 	syscall
 	
 	
@@ -219,6 +223,80 @@ EXIT:
 	# Exit the program
     	li $v0, 10
     	syscall
+
+keypress_happened:
+	lw $t0, ADDR_KBRD # load the address of the keyboard
+	lw $t2, 4($t0) # load the value of the key 
+	beq $t2, 0x64, move_right  # d is pressed
+	beq $t2, 0x61, move_left  # a is pressed
+	beq $t2, 0x77, rotate  # w is pressed
+	beq $t2, 0x73, drop  # s is pressed
+	beq $t2, 0x71, EXIT  # q is pressed, quit
+	
+	j game_loop
+	
+move_right:
+	addi $s1, $s1, 1           # Increment column index
+	j set_params
+	
+move_left:
+	addi $s1, $s1, -1           # Decrement column index
+	j set_params
+
+rotate:
+	la $t1, L0_BLOCK  # Load address of L0_BLOCK into $t1
+	la $t2, L1_BLOCK  # Load address of L1_BLOCK into $t2
+	la $t3, L2_BLOCK  # Load address of L2_BLOCK into $t3
+	la $t4, L3_BLOCK  # Load address of L3_BLOCK into $t4
+	
+	# check the block type
+	beq $s2, $t1, set_L1 # If $s2 == L0_BLOCK, branch to set_L1
+	beq $s2, $t2, set_L2 # If $s2 == L1_BLOCK, branch to set_L2
+	beq $s2, $t3, set_L3 # If $s2 == L2_BLOCK, branch to set_L3
+	beq $s2, $t4, set_L0 # If $s2 == L3_BLOCK, branch to set_L1
+
+set_L0:
+	la $s2, L0_BLOCK
+	j set_params
+
+set_L1:
+	la $s2, L1_BLOCK
+	j set_params
+
+set_L2:
+	la $s2, L2_BLOCK
+	j set_params
+
+set_L3:
+	la $s2, L3_BLOCK
+	j set_params
+
+drop:
+	addi $s0, $s0, 1           # Increment row index
+	j set_params
+	
+set_params:
+	
+	# the block I am generating
+	# would be randomized in final
+	
+	# set up to call draw_tet
+	# move up a word to give space for the block address
+	addi $sp, $sp, -4
+	sw $s2, 0($sp)
+	
+	# make room for row
+	addi $sp, $sp, -4
+	sw $s0, 0($sp)
+	
+	# make room for column
+	addi $sp, $sp, -4
+	sw $s1, 0($sp)
+	jal draw_background
+	jal draw_tet
+
+	j game_loop
+	
 
 draw_background:
     	# initialize cur row index to 0
@@ -377,5 +455,3 @@ draw_tet:
 			
 	exit_draw_tet:
 		jr $ra
-    
-    
