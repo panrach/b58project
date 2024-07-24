@@ -150,35 +150,44 @@ game_loop:
 		# continuely check if its has been pressed
 		# if yes, then check what key
     	# 1b. Check which key has been pressed
-    		# if invalid, go back to checking for press, branch back
-    		# if valid key, update s0 (row), s1 (col) of current tet appropiately based on key
-    		# if valid key is w for rotate, rotation function to change value of what we are tet we are drawing (s2)
+    		# if invalid, go back to checking for pressed, branch back
+    		# if valid key, continue
+    		# calc new position and blcok in temp based on key pressed, push to stack to run collision dectection
+    			# if key is w for rotate, rotation function to change value of what we are tet we are drawing,
+    			#     other parameters sent to stack stay the same
+    			# if key is a, s, d, put new row and new col based on movement in temp and push them to the 
+    			#     stack, others stay the same
     	
-    	# currently increment row to move down
-    	# you would do different things to row and col based on what key was pressed
-	addi $s0, $s0, 1
 	
-    	# 2a. Check for collisions
-    		# collision takes in what key has been pressed + shape + cur row in grid and cur col in grid 
-    		# for every block in shape (loop similar to draw tet), 
-    			# if 0 move on
-    			# if 1 calc where it will move which is row_in_block + row_in_grid, col_in_block + col_in_grid
+    	# 2a. Check for collisions in this new position
+    		# collision takes in what key was pressed + tet + row in grid + col in grid 
+    		# for every block in tet (loop similar to draw tet), 
+    			# if 0 move on to next block
+    			# if 1 calc where that block is on the grid which is row_in_block + row_in_grid, col_in_block + col_in_grid
     				# calc offset based on these new row and new col (*1 instead of 4 in this case)
-    				# checks byte at playing field + this offset = 1 then collision
+    				# checks byte at playing field + this offset != 0 then collision, otherwise no collision return 0 
     				# if key pressed is a or d then this is a horizonal collision, return 2
     				# otherwise vertical collision, return 1
     		
-	# 2b. Update locations (cur tet row, cur tet col)
+	# 2b. Update locations (cur_tet_row, cur_tet_col)
 		# takes in key pressed, output of collision check
-		# if collision returned 0, then move based on key pressed, i.e. update row and col to be sent to draw functions
-		# if returned 2, don't move 
-		# if returned 1, cur block in cur position to playing field, generate new piece to put in s2
+		# if collision returned 0, then move based on key pressed, 
+		#        i.e. update row s0 and col s1 or tet s2 to be sent to draw functions later
+		# if returned 2, don't move, s0 s1 s2 stay the same
+		# if returned 1, cur block in cur position to playing field bc it has been set, 
+		#        maybe functon for add position to playing field 
+		#        generate new piece to put in s2
+	
+	# currently increment row to move down
+    	# you would do different things to row and col based on what key was pressed
+    	# this is part of 2b
+	addi $s0, $s0, 1
 	
 	# 3. Draw the screen
 	jal draw_background
 	
 	# set up to call draw_tet
-	# move up a word to give space for the block address
+	# move up a word to give space for the tet address
 	addi $sp, $sp, -4
 	sw $s2, 0($sp)
 	
@@ -305,19 +314,19 @@ draw_tet:
 	addi $t2, $t2, 1
 	addi $sp, $sp, 4
 	
-	# pop block address, put it in t3
+	# pop tet address, put it in t3
 	lw $t3, 0($sp)
 	addi $sp, $sp, 4
 	
 	# t0 = current display address 
 	# t1 = start column index
 	# t2 = start row index
-	# t3 = current block address
+	# t3 = current block address (i.e. address of block in tet we are drawing)
 	# t4 = row index for row_loop/row offset
 	# t5 = col index for col_loop/ col offset
 	# t6 = color (would pop from stack later)
 	li $t6, ORANGE
-	# t7 = block_array[block_counter]
+	# t7 = byte located at current block address (i.e. 0 or 1)
 	# t8 = start row + row_offset
 	# t9 = start col + col_offset
 	
@@ -350,10 +359,10 @@ draw_tet:
 			# add to base display address
 			addi $t0, $t0, ADDR_DSPL_CONST 
 			
-			# accessing current block in block_array
+			# accessing current block in block_array/tet
 			lb $t7, 0($t3)
 			
-			# move on to address of next block in block_array
+			# move on to address of next block in block_array/t4et
 			addi, $t3, $t3, 1
 			#increment col offset/counter
 			addi $t5, $t5, 1
