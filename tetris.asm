@@ -25,6 +25,7 @@
 # 2. (fill in the feature, if any)
 # ... (add more if necessary)
 # How to play:
+# Do not hold keys 
 # (Include any instructions)
 # Link to video demonstration for final submission:
 # - (insert YouTube / MyMedia / other URL here). Make sure we can view it!
@@ -50,11 +51,6 @@ ADDR_DSPL:
 # The address of the keyboard. Don't forget to connect it!
 ADDR_KBRD:
     .word 0xffff0000
-
-# to store playing field
-# 0 if unoccupied
-# number reping colour is occupied
-playing_field: .byte 0:512
 
 # L block and all its rotations
 L0_BLOCK: 
@@ -85,21 +81,32 @@ L3_BLOCK:
 .eqv GRID_LIGHT 0x808080 	# light colour in grid 
 .eqv BORDER_BLACK 0x000000	# black for border
 
-.eqv ROW_SIZE 32	# Number of rows (256/8)
-.eqv COL_SIZE 16	# Number of col (128/8)
-.eqv GRID_ROW_SIZE 24  # Number of rows in grid (row_size - borders)
-.eqv GRID_COL_SIZE 14  # Number of cols in grid (col_size - borders)
+.eqv ROW_SIZE 32	# number of rows (256/8)
+.eqv COL_SIZE 16	# number of col (128/8)
+.eqv GRID_ROW_SIZE 24  # number of rows in grid (row_size - borders)
+.eqv GRID_COL_SIZE 14  # number of cols in grid (col_size - borders)
 
 .eqv TOP_BORDER 6	# row index that top border ends
 .eqv BOTTOM_BORDER 31	# row index that bottom border starts 
 .eqv LEFT_BORDER 0	# col index that left border ends
 .eqv RIGHT_BORDER 15	# col index that left border starts
 
-.eqv ORANGE 0xe69138
+
+# what number each tet is assoicated with (used for picking random piece)
+# also used for colouring
+.eqv L_NUM 1
+
+# colours for blocks
+.eqv L_COLOUR 0xe69138
 
 ##############################################################################
 # Mutable Data
 ##############################################################################
+
+# to store playing field
+# 0 if unoccupied
+# number reping colour is occupied
+playing_field: .byte 0:512
 
 ##############################################################################
 # Code
@@ -108,112 +115,367 @@ L3_BLOCK:
     .globl main
 
 main:  	
+	# intialize score to 0
+	li $s4, 0
+	
 	jal draw_background
 	
-	# the block I am generating
+	# the tet I am generating
 	# would be randomized in final
-	la $s2, L0_BLOCK
+	# generate random number 1-7 in $t1
+	# use generated tet number to figure out block
+	
+	generate_new_tet:
 	
 	# set up starting row and col
+	# s registers for draw, a registers for collision detection
 	li $s0, 0 # row to where tet starts off
 	li $s1, 5 # col to where tet starts off
+	move $a2, $s0 # row to where tet starts off
+	move $a3, $s1 # col to where tet starts off
 	
-	# set up to call draw_tet
-	# move up a word to give space for the block address
-	addi $sp, $sp, -4
-	sw $s2, 0($sp)
+	# generate random num
+	# not yet, will do after implementing full set
+	li $t1, 1 # this would generate a number from 1-7 instead and put in t1
 	
-	# make room for row
-	addi $sp, $sp, -4
-	sw $s0, 0($sp)
-	
-	# make room for column
-	addi $sp, $sp, -4
-	sw $s1, 0($sp)
-	
-	jal draw_tet
-	
-	jal game_loop
-	
-	# Sleep
-	li $v0, 32
-	li $a0, 500 # Wait one second (1000 milliseconds)
-	syscall
+	# figure out which tet to generate based on random number
+	beq $t1, L_NUM, generate_L
+	# load appropiate tet address into s2 for collision detection 
+	generate_L:
+		la $s2, L0_BLOCK
+		move $a1, $s2
+		j check_collision
+
 	
 game_loop:
 	# s0 -- row in grid (starts from 0) where top left corner of tet is
 	# s1 -- col in grid (starts from 0) where top left corner of tet is
 	# s2 -- tet we are drawing
+	# s3 -- number of increments of .01 second that have passed; used for gravity
+		# if level_#_gravity (constant) of .01 seconds have passed then reset s3 to 0
+		# and tet move 1 down  
+	# s4 -- score (number of lines cleared)
 	
 	# 1a. Check if key has been pressed
-		# continuely check if its has been pressed
+		# check even 5 milliseconds/0.005 sec if its has been pressed
+		# after checking 200 times, temp_drop (do this before checking for keyboard input)
 		# if yes, then check what key
+	
+	# Sleep
+	li $v0, 32
+	li $a0, 5 # Wait one second (1000 milliseconds)
+	syscall
+	
+	
+	
 	lw $t0, ADDR_KBRD
 	lw $t1,  0($t0) # load the value from the keyboard register
-	beq $t1, 1, keypress_happened
-	j game_loop # comment out to implement gravity
 	
+	# s3 incremented
+	# if s3 is == level_3_gravity then temp_drop
+	
+	bne $t1, 1, game_loop # no key has been pressed, go back 
+		
     	# 1b. Check which key has been pressed
     		# if invalid, go back to checking for pressed, branch back
     		# if valid key, continue
-    		# calc new position and blcok in temp based on key pressed, push to stack to run collision dectection
+    		# calc row, col, and tet in temps based on key pressed; temps will be used by collision dectection
     			# if key is w for rotate, rotation function to change value of what we are tet we are drawing,
     			#     other parameters sent to stack stay the same
     			# if key is a, s, d, put new row and new col based on movement in temp and push them to the 
     			#     stack, others stay the same
     	
+    	keypress_happened:
+		lw $t0, ADDR_KBRD # load the address of the keyboard
+		lw $t2, 4($t0) # load the value of the key
+		
+		# TO DO
+		# these fcn should set up the arguments for collision dectection based on new position 
+		# must use adjust temps according to temp assignments
+		beq $t2, 0x64, temp_move_right  # d is pressed
+		beq $t2, 0x61, temp_move_left  # a is pressed
+		beq $t2, 0x77, temp_rotate  # w is pressed
+		beq $t2, 0x73, temp_drop  # s is pressed
+		beq $t2, 0x71, EXIT  # q is pressed, quit
+		
+		j game_loop # invalid key
+		
+	temp_move_right:
+		li $a0, 0x64		   # store the key pressed
+		move $a1, $s2		   # store the address to the tet block
+		move $a2, $s0		   # row stays the same. store potential row in a2
+		move $a3, $s1		   # Store original column index. store potential col in  a3
+		addi $a3, $a3, 1	   # Increment column index
+		j check_collision
+		
+	temp_move_left:
+		li $a0, 0x61		   # store the key pressed
+		move $a1, $s2		   # store the address to the tet block
+		move $a2, $s0		   # row stays the same
+		move $a3, $s1		   # Store original column index
+		addi $a3, $a3, -1	   # Decrement column index
+		j check_collision
 	
+	temp_rotate:
+		li $a0, 0x77		   # store the key pressed
+		move $a2, $s0		   # store original row index
+		move $a3, $s1		# Store original column index
+		la $t2, L0_BLOCK  # Load address of L0_BLOCK into $t1
+		la $t3, L1_BLOCK  # Load address of L1_BLOCK into $t2
+		la $t4, L2_BLOCK  # Load address of L2_BLOCK into $t3
+		la $t5, L3_BLOCK  # Load address of L3_BLOCK into $t4
+	
+		# check the block type
+		beq $s2, $t2, set_L1 # If $s2 == L0_BLOCK, branch to set_L1
+		beq $s2, $t3, set_L2 # If $s2 == L1_BLOCK, branch to set_L2
+		beq $s2, $t4, set_L3 # If $s2 == L2_BLOCK, branch to set_L3
+		beq $s2, $t5, set_L0 # If $s2 == L3_BLOCK, branch to set_L1
+
+		set_L0:
+			la $a1, L0_BLOCK
+			j check_collision
+
+		set_L1:
+			la $a1, L1_BLOCK
+			j check_collision
+
+		set_L2:
+			la $a1, L2_BLOCK
+			j check_collision
+
+		set_L3:
+			la $a1, L3_BLOCK
+			j check_collision
+
+	temp_drop:
+		li $a0, 0x73		   # store the key pressed
+		move $a1, $s2		   # store the address to the tet block
+		move $a2, $s0		   # store original row index
+		addi $a2, $a2, 1	# Increment row index
+		move $a3, $s1		# Store original column index
+    	
+	check_collision:
+    	# a0 -- what key is pressed
+    	# a1 -- cur tet (the constant that means the address) 
+    	# 	for every function except for rotate just grab the value in the stored register
+    	# a2 -- row index in grid that the top left block of the tet is located at
+    	# a3 -- col index in grid that the top left block of the tet is located at
+    	# v0 -- return
+    	#		0 if no collision
+    	#		1 if vertical collision
+    	#		2 if horizonal collsion
+    	
     	# 2a. Check for collisions in this new position
     		# collision takes in what key was pressed + tet + row in grid + col in grid 
     		# for every block in tet (loop similar to draw tet), 
     			# if 0 move on to next block
-    			# if 1 calc where that block is on the grid which is row_in_block + row_in_grid, col_in_block + col_in_grid
-    				# calc offset based on these new row and new col (*1 instead of 4 in this case)
-    				# checks byte at playing field + this offset != 0 then collision, otherwise no collision return 0 
-    				# if key pressed is a or d then this is a horizonal collision, return 2
-    				# otherwise vertical collision, return 1
-    		
+    			# if 1 calc where that block is on the grid which is block_row = row_in_block + row_in_grid, block_col = col_in_block + col_in_grid
+    				# check for collision with border 
+    				# collison if any of the following
+    				# 	block_row >= BOTTOM_BORDER
+    				#	block_col <= LEFT_BORDER
+    				#	block_col <= RIGHT_BORDER 
+    				# if collision and key pressed is 'a' or 'd', return 2 for horizontal collision
+    				# otherwise, return 1 (maybe do in opposite order, set to 1 default for collision, branch and set to 2 if horizontal)
+    				
+    				# TO DO
+    				# this is for checking playing field collision
+    				# calc offset based on these block_row and block_col 
+    				#	similar to calc in draw_tet but do *1 instead of *4 in this case
+    				# checks byte at playing field + this offset != 0 then collision, 
+    				#	if key pressed is a or d or w then this is a horizonal collision, return 2
+    				#	otherwise vertical collision, return 1
+    				# otherwise no collision, move on to next block 
+    				
+	
+	# t3 = current block address
+	move $t3, $a1
+	# t4 = row index for row_loop/row offset (i.e. what row index within tet)
+	# t5 = col index for col_loop/col offset
+	# t6 = offset for playing field + playing field address
+	# t8 = row of current block
+	# t9 = col of current block
+	# t7 = cur block in tet which is 1 or 0 (located at cur block address)
+	
+	# initialize row index
+	li $t4, -1 # -1 bc it gets incremented to 0 in the row_loop 
+	
+	# initialize collision to 0 (no collision)
+	li $v0, 0
+
+	collision_row_loop:
+		# initialize col index to 0
+		li $t5, -1 # negative bc it get incremented to 0 in the col_loop
+		
+		# increment row counter
+		addi $t4, $t4, 1
+		
+		# if (row >= 4, exit) and go to draw)
+		bge $t4, 4, update_location
+		
+		collision_col_loop:
+			#increment col offset/counter
+			addi $t5, $t5, 1
+			
+			# if (col >=4, move to next row)
+			bge $t5, 4, collision_row_loop
+			
+			# accessing value of current block
+			lb $t7, 0($t3)
+			
+			# move on to address of next block
+			addi $t3, $t3, 1
+			
+			# block value is empty, move on to next block
+			beq $t7, 0, collision_col_loop
+			
+			# calculate row where cur block would be
+			# block_row = row_index + row_in_grid (given by argument)
+			add $t8, $t4, $a2
+			
+			
+			# calculate column where cur block would be
+			# block_col = col_index + col_in_grid
+			add $t9, $t5, $a3
+			
+			
+			# check for collision with walls
+			# add TOP_BORDER + 1 to block_row to get overall row in entire screen
+			# if it is greater than BOTTOM_BORDER, return 1
+			addi $t1, $t8, TOP_BORDER
+			addi $t1, $t1, 1
+			bge $t1, BOTTOM_BORDER, vertical_collide
+			# add LEFT_BORDER + 1 to block_col to get overall col in entire screen
+			# if it is less than LEFT_BORDER or greater than RIGHT_BORDER,
+			addi $t1, $t9, LEFT_BORDER
+			addi $t1, $t1, 1
+			ble $t1, LEFT_BORDER, collide
+			bge $t1, RIGHT_BORDER, collide
+			j collision_col_loop
+			
+			
+			# check for collison with playing field
+			# calc offset based on these block_row and block_col 
+			# add to playing_field address
+			# base + ((row index * number of columns) + column index) * 1 
+			mul $t6, $t8, GRID_COL_SIZE
+			add $t6, $t6, $t9
+			la $t1, playing_field
+			add $t6, $t6, $t1
+			
+			# check value in playing field to see if occupied or not
+			lb $t1, 0($t6)
+			# if value is not 0, i.e. occupied, collision
+			bne $t1, 0, collide
+			# otherwise, no collision move on to next block
+			j collision_col_loop
+			
+			
+			
+			
+			collide:
+				li $v0, 1 # store 1, assume vertical collision
+				# check if a or d or w was pressed to mean horizontal collision
+				beq $a0, 0x64, horizontal_collide  # d is pressed
+				beq $a0, 0x61, horizontal_collide  # a is pressed
+				beq $a0, 0x77, horizontal_collide  # w is pressed
+				j update_location
+				
+				horizontal_collide:
+					li $v0, 2
+					j update_location
+			
+			vertical_collide:
+				li $v0, 1
+				j update_location
+				
+			
 	# 2b. Update locations (cur_tet_row, cur_tet_col)
 		# takes in key pressed, output of collision check
 		# if collision returned 0, then move based on key pressed, 
 		#        i.e. update row s0 and col s1 or tet s2 to be sent to draw functions later
-		# if returned 2, don't move, s0 s1 s2 stay the same
+		# if returned 2, branch back to game_loop, no need to redraw
+		# TO DO
 		# if returned 1, cur block in cur position to playing field bc it has been set, 
 		#        maybe functon for add position to playing field 
 		#        generate new piece to put in s2
 	
-	# currently increment row to move down
-    	# you would do different things to row and col based on what key was pressed
-    	# this is part of 2b
-	addi $s0, $s0, 1
+	update_location: 
+		# check output of collision detection
+		# if horizontal collision, don't move so go back to start of game loop
+		beq $v0, 2, game_loop
+		
+		# deal with vertical collision later, so for now dont move
+		beq $v0, 1, game_loop
+		# when vertical collision happens we need:
+		#	1. the current tet in the original position (use s registers for positon) to be 
+		#	   added to the playing field
+		#	2. a new tet to be generated (j generate_new_tet)
+		# 	3. playing field drawing will happen when we call draw later, not here 
+		
+		# pseudocode for 1. add_to_playing_field
+		# takes in tet (s2), row (s0), col (s1) 
+		# gets tet num based on tet to put into playing field 
+		# loop through each block in tet, same as row_offset col_offset loop in check collision
+		# access value in current block 
+		#	(how? move $t1, $s2, increment t1 in every loop, load byte from t1 to see value)
+		#	if 0, move on to next block
+		# 	if 1, continue 
+		# calc cur block row = row (s0) + row_offset, cur block col = col (s0) + col_offset
+		# using block_row and block_col, calulate corresponding address in playing_field
+		# 	base + ((row index * number of columns) + column index) * 1
+		# 	see line 354 for example
+		# set value at that playing field address to the tet num (the value is 1 byte, not a 4 byte word, use sb)
+		# done 
+							
+		# otherwise, if no collision
+		# update the rows, columns, etc. according to movement 
+		move $s0, $a2
+		move $s1, $a3
+		move $s2, $a1
 	
-	# 3. Draw the screen
-	jal draw_background
+	draw: 
+		# 3. Draw the screen
+		jal draw_background
 	
-	# set up to call draw_tet
-	# move up a word to give space for the tet address
-	addi $sp, $sp, -4
-	sw $s2, 0($sp)
+		# set up to call draw_tet
+		# move up a word to give space for the tet address
+		addi $sp, $sp, -4
+		sw $s2, 0($sp)
 	
-	# make room for row
-	addi $sp, $sp, -4
-	#li $t0, 10
-	sw $s0, 0($sp)
+		# make room for row
+		addi $sp, $sp, -4
+		#li $t0, 10
+		sw $s0, 0($sp)
 	
-	# make room for column
-	addi $sp, $sp, -4
-	#li $t1, 5
-	sw $s1, 0($sp)
+		# make room for column
+		addi $sp, $sp, -4
+		#li $t1, 5
+		sw $s1, 0($sp)
 	
-	jal draw_tet
+		jal draw_tet
 	
-	# if end of screen, end
-	bge $s0, 20, EXIT
-	
-	# 4. Sleep
-	li $v0, 32
-	li $a0, 100 # Wait one second (1000 milliseconds)
-	syscall
+		# here we also need to draw playing field
+		# make this a func prolly that doesnt need args, it use uses the save value for tet (kinda like global var)
+		# and the playing field and the display address
+		# inside draw_playing field is where we get rid of lines and increment the score (s4)
+		#	will deal with getting rid of lines and score later
+		#	might just loop through every row to see if any all non-zero rows and shifting if require
+		#	before proceeding to second loop that does the printing
+		# loop through playing field row by row
+		# 	to do so would have a row = 0 to grid_row_size - 1, col = 0 to grid_col_size - 1 loop
+		# 	per row, check value at each block
+		# 		would do this by calculating address in playing field based on row and col
+		#		then accessing byte at each block
+		#	if value is 0, move on to next block (unoccupied so dont draw anything)
+		# 	if occupied, continue
+		#	determine what colour based on value in there
+		#	calculate the unit in the display that would need to colour
+		#		calculate row_in_overall = row_in_grid + TOP_BORDER + 1 
+		#		and col_in_overall = col_in_grid + LEFT_BORDER + 1 
+		#		use those in display_base + ((row index * number of columns) + column index) * unit_size
+		# 	store colour at that unit ( the address u just calculated)
+		# use the constants I create at the top for all these things
 	
 	
 	#5. Go back to 1
@@ -224,80 +486,8 @@ EXIT:
     	li $v0, 10
     	syscall
 
-keypress_happened:
-	lw $t0, ADDR_KBRD # load the address of the keyboard
-	lw $t2, 4($t0) # load the value of the key 
-	beq $t2, 0x64, move_right  # d is pressed
-	beq $t2, 0x61, move_left  # a is pressed
-	beq $t2, 0x77, rotate  # w is pressed
-	beq $t2, 0x73, drop  # s is pressed
-	beq $t2, 0x71, EXIT  # q is pressed, quit
 	
-	j game_loop
 	
-move_right:
-	addi $s1, $s1, 1           # Increment column index
-	j set_params
-	
-move_left:
-	addi $s1, $s1, -1           # Decrement column index
-	j set_params
-
-rotate:
-	la $t1, L0_BLOCK  # Load address of L0_BLOCK into $t1
-	la $t2, L1_BLOCK  # Load address of L1_BLOCK into $t2
-	la $t3, L2_BLOCK  # Load address of L2_BLOCK into $t3
-	la $t4, L3_BLOCK  # Load address of L3_BLOCK into $t4
-	
-	# check the block type
-	beq $s2, $t1, set_L1 # If $s2 == L0_BLOCK, branch to set_L1
-	beq $s2, $t2, set_L2 # If $s2 == L1_BLOCK, branch to set_L2
-	beq $s2, $t3, set_L3 # If $s2 == L2_BLOCK, branch to set_L3
-	beq $s2, $t4, set_L0 # If $s2 == L3_BLOCK, branch to set_L1
-
-set_L0:
-	la $s2, L0_BLOCK
-	j set_params
-
-set_L1:
-	la $s2, L1_BLOCK
-	j set_params
-
-set_L2:
-	la $s2, L2_BLOCK
-	j set_params
-
-set_L3:
-	la $s2, L3_BLOCK
-	j set_params
-
-drop:
-	addi $s0, $s0, 1           # Increment row index
-	j set_params
-	
-set_params:
-	
-	# the block I am generating
-	# would be randomized in final
-	
-	# set up to call draw_tet
-	# move up a word to give space for the block address
-	addi $sp, $sp, -4
-	sw $s2, 0($sp)
-	
-	# make room for row
-	addi $sp, $sp, -4
-	sw $s0, 0($sp)
-	
-	# make room for column
-	addi $sp, $sp, -4
-	sw $s1, 0($sp)
-	jal draw_background
-	jal draw_tet
-
-	j game_loop
-	
-
 draw_background:
     	# initialize cur row index to 0
     	li $t5, 0	# t5 = cur_row = 0
@@ -313,7 +503,7 @@ draw_background:
 	
 		# calculate the address of the current unit in t7
 		li $t8, UNIT_SIZE			# t8 = unit size (4 bytes)
-		# base + ((row index * number of columns) + column index) * pixel size 
+		# base + ((row index * number of columns) + column index) * unit size 
     		# row index * number of columns
     		mul $t7, $t5, $t4
     		# (row index * num columns) + column index
@@ -403,7 +593,7 @@ draw_tet:
 	# t4 = row index for row_loop/row offset
 	# t5 = col index for col_loop/ col offset
 	# t6 = color (would pop from stack later)
-	li $t6, ORANGE
+	li $t6, L_COLOUR
 	# t7 = byte located at current block address (i.e. 0 or 1)
 	# t8 = start row + row_offset
 	# t9 = start col + col_offset
