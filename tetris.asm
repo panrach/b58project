@@ -25,6 +25,7 @@
 # 2. (fill in the feature, if any)
 # ... (add more if necessary)
 # How to play:
+# Do not hold keys 
 # (Include any instructions)
 # Link to video demonstration for final submission:
 # - (insert YouTube / MyMedia / other URL here). Make sure we can view it!
@@ -85,16 +86,24 @@ L3_BLOCK:
 .eqv GRID_LIGHT 0x808080 	# light colour in grid 
 .eqv BORDER_BLACK 0x000000	# black for border
 
-.eqv ROW_SIZE 32	# Number of rows (256/8)
-.eqv COL_SIZE 16	# Number of col (128/8)
-.eqv GRID_ROW_SIZE 24  # Number of rows in grid (row_size - borders)
-.eqv GRID_COL_SIZE 14  # Number of cols in grid (col_size - borders)
+.eqv ROW_SIZE 32	# number of rows (256/8)
+.eqv COL_SIZE 16	# number of col (128/8)
+.eqv GRID_ROW_SIZE 24  # number of rows in grid (row_size - borders)
+.eqv GRID_COL_SIZE 14  # number of cols in grid (col_size - borders)
 
 .eqv TOP_BORDER 6	# row index that top border ends
 .eqv BOTTOM_BORDER 31	# row index that bottom border starts 
 .eqv LEFT_BORDER 0	# col index that left border ends
 .eqv RIGHT_BORDER 15	# col index that left border starts
 
+
+# what number each tet is assoicated with (used for picking random piece)
+.eqv L_NUM 1
+
+# what number in playing field each colour is associated with 
+.eqv ORANGE_NUM 1
+
+# colours for blocks
 .eqv ORANGE 0xe69138
 
 ##############################################################################
@@ -110,28 +119,31 @@ L3_BLOCK:
 main:  	
 	jal draw_background
 	
-	# the block I am generating
+	# the tet I am generating
 	# would be randomized in final
-	la $s2, L0_BLOCK
+	# generate random number 1-7 in $t1
+	# use generated tet number to figure out block
+	
+	generate_new_tet:
 	
 	# set up starting row and col
+	# s registers for draw, a registers for collision detection
 	li $s0, 0 # row to where tet starts off
 	li $s1, 5 # col to where tet starts off
+	move $a2, $s0 # row to where tet starts off
+	move $a3, $s1 # col to where tet starts off
 	
-	# set up to call draw_tet
-	# move up a word to give space for the block address
-	addi $sp, $sp, -4
-	sw $s2, 0($sp)
+	# generate random num
+	# not yet, will do after implementing full set
+	li $t1, 1 # this would generate a number from 1-7 instead and put in t1
 	
-	# make room for row
-	addi $sp, $sp, -4
-	sw $s0, 0($sp)
-	
-	# make room for column
-	addi $sp, $sp, -4
-	sw $s1, 0($sp)
-	
-	jal draw_tet
+	# figure out which tet to generate based on random number
+	beq $t1, L_NUM, generate_L
+	# load appropiate tet address into s2 for collision detection 
+	generate_L:
+		la $s2, L0_BLOCK
+		move $a1, $s2
+		j check_collision
 
 	
 game_loop:
@@ -143,12 +155,13 @@ game_loop:
 		# and tet move 1 down  
 	
 	# 1a. Check if key has been pressed
-		# check even 10 milliseconds/0.01 sec if its has been pressed
+		# check even 5 milliseconds/0.005 sec if its has been pressed
+		# after checking 200 times, temp_drop (do this before checking for keyboard input)
 		# if yes, then check what key
 	
 	# Sleep
 	li $v0, 32
-	li $a0, 10 # Wait one second (1000 milliseconds)
+	li $a0, 5 # Wait one second (1000 milliseconds)
 	syscall
 	
 	
@@ -161,7 +174,6 @@ game_loop:
 	
 	bne $t1, 1, game_loop # no key has been pressed, go back 
 		
-	# TODO
     	# 1b. Check which key has been pressed
     		# if invalid, go back to checking for pressed, branch back
     		# if valid key, continue
@@ -251,7 +263,6 @@ game_loop:
     	#		1 if vertical collision
     	#		2 if horizonal collsion
     	
-    	# TO DO
     	# 2a. Check for collisions in this new position
     		# collision takes in what key was pressed + tet + row in grid + col in grid 
     		# for every block in tet (loop similar to draw tet), 
@@ -265,18 +276,22 @@ game_loop:
     				# if collision and key pressed is 'a' or 'd', return 2 for horizontal collision
     				# otherwise, return 1 (maybe do in opposite order, set to 1 default for collision, branch and set to 2 if horizontal)
     				
-    				# don't do playing field check yet
+    				# TO DO
     				# this is for checking playing field collision
-    				# calc offset based on these new row and new col (*1 instead of 4 in this case)
-    				# checks byte at playing field + this offset != 0 then collision, otherwise no collision return 0 
-    				# if key pressed is a or d then this is a horizonal collision, return 2
-    				# otherwise vertical collision, return 1
+    				# calc offset based on these block_row and block_col 
+    				#	similar to calc in draw_tet but do *1 instead of *4 in this case
+    				# checks byte at playing field + this offset != 0 then collision, 
+    				#	if key pressed is a or d or w then this is a horizonal collision, return 2
+    				#	otherwise vertical collision, return 1
+    				# otherwise no collision, move on to next block 
+    				
 	
 	# t3 = current block address
 	move $t3, $a1
 	# t4 = row index for row_loop/row offset (i.e. what row index within tet)
-	# t5 = col index for col_loop/ col offset
-	# t6 = row/col of current block
+	# t5 = col index for col_loop/col offset
+	# t8 = row of current block
+	# t9 = col of current block
 	# t7 = cur block in tet which is 1 or 0 (located at cur block address)
 	
 	# initialize row index
@@ -293,16 +308,16 @@ game_loop:
 		addi $t4, $t4, 1
 		
 		# if (row >= 4, exit) and go to draw)
-		bge $t4, 4, draw
+		bge $t4, 4, update_location
 		
 		collision_col_loop:
 			# if (col >=4, move to next row)
 			bge $t5, 4, collision_row_loop
 			
-			# accessing current block in block_array
+			# accessing value of current block
 			lb $t7, 0($t3)
 			
-			# move on to address of next block in block_array
+			# move on to address of next block
 			addi $t3, $t3, 1
 			
 			#increment col offset/counter
@@ -313,16 +328,16 @@ game_loop:
 			
 			# calculate row where cur block would be
 			# block_row = row_index + row_in_grid (given by argument)
-			add $t6, $t4, $a2
+			add $t8, $t4, $a2
 			# if it is greater than BOTTOM_BORDER, return 1
-			bge $t6, BOTTOM_BORDER, vertical_collide
+			bge $t8, BOTTOM_BORDER, vertical_collide
 			
 			# calculate column where cur block would be
 			# block_col = col_index + col_in_grid
-			add $t6, $t5, $a3
+			add $t9, $t5, $a3
 			# if it is less than LEFT_BORDER or greater than RIGHT_BORDER,
-			ble $t6, LEFT_BORDER, collide
-			bge $t6, RIGHT_BORDER, collide
+			ble $t9, LEFT_BORDER, collide
+			bge $t9, RIGHT_BORDER, collide
 			j collision_col_loop
 			
 			collide:
@@ -331,29 +346,28 @@ game_loop:
 				beq $a0, 0x64, horizontal_collide  # d is pressed
 				beq $a0, 0x61, horizontal_collide  # a is pressed
 				beq $a0, 0x77, horizontal_collide  # w is pressed
-				j draw
+				j update_location
 				
 				horizontal_collide:
 					li $v0, 2
-					j draw
+					j update_location
 			
 			vertical_collide:
 				li $v0, 1
+				j update_location
 				
 			
-	# TO DO: case collision detection returns 0 (i.e. t4 is 0), update stuff for real,use move_right, etc. 
-	# also do case returns 2, branch back to game_loop, no need to redraw
-	# case where it return 1 is impossible for rignt now, dont do it
 	# 2b. Update locations (cur_tet_row, cur_tet_col)
 		# takes in key pressed, output of collision check
 		# if collision returned 0, then move based on key pressed, 
 		#        i.e. update row s0 and col s1 or tet s2 to be sent to draw functions later
-		# if returned 2, don't move, s0 s1 s2 stay the same
+		# if returned 2, branch back to game_loop, no need to redraw
+		# TO DO
 		# if returned 1, cur block in cur position to playing field bc it has been set, 
 		#        maybe functon for add position to playing field 
 		#        generate new piece to put in s2
 	
-	draw: 
+	update_location: 
 		# check output of collision detection
 		# if horizontal collision, don't move so go back to start of game loop
 		beq $v0, 2, game_loop
@@ -365,7 +379,8 @@ game_loop:
 		move $s0, $a2
 		move $s1, $a3
 		move $s2, $a1
-
+	
+	draw: 
 		# 3. Draw the screen
 		jal draw_background
 	
@@ -397,35 +412,8 @@ EXIT:
     	li $v0, 10
     	syscall
 
-
 	
-	j game_loop
 	
-move_right: # not really useful as a fcn bc we only use it once, pre-collison detec we need to put in temps
-	addi $s1, $s1, 1           # Increment column index
-	j draw
-	
-move_left:
-	addi $s1, $s1, -1           # Decrement column index
-	j draw
-
-actual_rotate:
-	la $t1, L0_BLOCK  # Load address of L0_BLOCK into $t1
-	la $t2, L1_BLOCK  # Load address of L1_BLOCK into $t2
-	la $t3, L2_BLOCK  # Load address of L2_BLOCK into $t3
-	la $t4, L3_BLOCK  # Load address of L3_BLOCK into $t4
-	
-	# check the block type
-	beq $s2, $t1, set_L1 # If $s2 == L0_BLOCK, branch to set_L1
-	beq $s2, $t2, set_L2 # If $s2 == L1_BLOCK, branch to set_L2
-	beq $s2, $t3, set_L3 # If $s2 == L2_BLOCK, branch to set_L3
-	beq $s2, $t4, set_L0 # If $s2 == L3_BLOCK, branch to set_L1
-
-actual_drop:
-	addi $s0, $s0, 1           # Increment row index
-	j draw
-	
-
 draw_background:
     	# initialize cur row index to 0
     	li $t5, 0	# t5 = cur_row = 0
