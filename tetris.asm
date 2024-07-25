@@ -327,9 +327,10 @@ game_loop:
 			
 			collide:
 				li $v0, 1 # store 1, assume vertical collision
-				# check if a or d was pressed to mean horizontal collision
+				# check if a or d or w was pressed to mean horizontal collision
 				beq $a0, 0x64, horizontal_collide  # d is pressed
 				beq $a0, 0x61, horizontal_collide  # a is pressed
+				beq $a0, 0x77, horizontal_collide  # w is pressed
 				j draw
 				
 				horizontal_collide:
