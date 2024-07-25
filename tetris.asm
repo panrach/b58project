@@ -241,8 +241,6 @@ game_loop:
 		move $s1, $a3		# Store original column index
     	
 	check_collision:
-    	# use temp registers for inputs for collision
-    	# whatever values aren't being changed just grab it from stored registers
     	# a0 -- what key is pressed
     	# a1 -- cur tet (the constant that means the address)
     	# 	for every function except for rotate just grab the value in the stored register
@@ -275,16 +273,19 @@ game_loop:
     				# otherwise vertical collision, return 1
 	
 	# t3 = current block address
-	# t4 = row index for row_loop/row offset
+	# t4 = row index for row_loop/row offset (i.e. what row index within tet)
 	# t5 = col index for col_loop/ col offset
-	# t6 = new position
-	# t7 = block_array[block_counter]
+	# t6 = row/col of current block
+	# t7 = cur block in tet which is 1 or 0 (located at cur block address)
 	
-	# initialize row counter
+	# initialize row index
 	li $t4, -1
+	
+	# initialize collision to 0 (no collision)
+	li $v0, 0
 
 	collision_row_loop:
-		# initialize col counter to 0
+		# initialize col index to 0
 		li $t5, 0
 		
 		# increment row counter
@@ -292,8 +293,6 @@ game_loop:
 		
 		# if (row >= 4, exit) and go to draw)
 		bge $t4, 4, draw
-		# initialize collision to 0
-		li $v0, 0
 		
 		collision_col_loop:
 			# if (col >=4, move to next row)
@@ -304,37 +303,40 @@ game_loop:
 			
 			# move on to address of next block in block_array
 			addi, $t3, $t3, 1
+			
 			#increment col offset/counter
 			addi $t5, $t5, 1
-			# block value is empty, continue
+			
+			# block value is empty, move on to next block
 			beq $t7, 0, collision_col_loop
-			# calculate potential row 
-			# block_row = current_row + row_in_grid
+			
+			# calculate row where cur block would be
+			# block_row = row_index + row_in_grid (given by argument)
 			add $t6, $t4, $a2
 			# if it is greater than BOTTOM_BORDER, return 1
-			bge $t6, BOTTOM_BORDER, down_collide
+			bge $t6, BOTTOM_BORDER, vertical_collide
 			
-			# calculate potential column
-			# block_col = current_col + col_in_grid
+			# calculate column where cur block would be
+			# block_col = col_index + col_in_grid
 			add $t6, $t5, $a3
-			# if it is greater than LEFT_BORDER or greater than RIGHT_BORDER,
-			ble $t6, LEFT_BORDER, horizontal_collide
-			bge $t6, RIGHT_BORDER, horizontal_collide
+			# if it is less than LEFT_BORDER or greater than RIGHT_BORDER,
+			ble $t6, LEFT_BORDER, collide
+			bge $t6, RIGHT_BORDER, collide
 			j collision_col_loop
 			
-			horizontal_collide:
-				sw, $v0, 1 # store 1
-				# check if a or d was pressed 
-				beq $a0, 0x64, button_pressed  # d is pressed
-				beq $a0, 0x61, button_pressed  # a is pressed
+			collide:
+				sw, $v0, 1 # store 1, assume vertical collision
+				# check if a or d was pressed to mean horizontal
+				beq $a0, 0x64, horizonal_collide  # d is pressed
+				beq $a0, 0x61, horizonal_collide  # a is pressed
 				
-				button_pressed:
-					add $v0, $v0, 1
+				horizonal_collide:
+					sw $v0, 2
 				j draw
 			
-			down_collide:
+			vertical_collide:
 				sw $v0, 1
-				j draw	
+				
 			
 	# TO DO: case collision detection returns 0 (i.e. t4 is 0), update stuff for real,use move_right, etc. 
 	# also do case returns 2, branch back to game_loop, no need to redraw
@@ -349,32 +351,39 @@ game_loop:
 		#        generate new piece to put in s2
 	
 	draw: 
-	beq $v0, 2, game_loop
-	move $a2, $s0
-	move $a3, $s1
-	la $s2, ($a1)
+		# check output of collision detection
+		# if horizontal collision, don't move so go back to start of game loop
+		beq $v0, 2, game_loop
+		
+		# deal with vertical collision later
+		
+		# otherwise, if no collision
+		# update the rows, columns, etc. according to movement 
+		move $s0, $a2
+		move $s1, $s3
+		la $s2, ($a1)
 
-	# 3. Draw the screen
-	jal draw_background
+		# 3. Draw the screen
+		jal draw_background
 	
-	# set up to call draw_tet
-	# move up a word to give space for the tet address
-	addi $sp, $sp, -4
-	sw $s2, 0($sp)
+		# set up to call draw_tet
+		# move up a word to give space for the tet address
+		addi $sp, $sp, -4
+		sw $s2, 0($sp)
 	
-	# make room for row
-	addi $sp, $sp, -4
-	#li $t0, 10
-	sw $s0, 0($sp)
+		# make room for row
+		addi $sp, $sp, -4
+		#li $t0, 10
+		sw $s0, 0($sp)
 	
-	# make room for column
-	addi $sp, $sp, -4
-	#li $t1, 5
-	sw $s1, 0($sp)
+		# make room for column
+		addi $sp, $sp, -4
+		#li $t1, 5
+		sw $s1, 0($sp)
 	
-	jal draw_tet
+		jal draw_tet
 	
-	# later, draw playing field
+		# later, draw playing field
 	
 	
 	#5. Go back to 1
