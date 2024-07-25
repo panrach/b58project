@@ -93,13 +93,11 @@ L3_BLOCK:
 
 
 # what number each tet is assoicated with (used for picking random piece)
+# also used for colouring
 .eqv L_NUM 1
 
-# what number in playing field each colour is associated with 
-.eqv ORANGE_NUM 1
-
 # colours for blocks
-.eqv ORANGE 0xe69138
+.eqv L_COLOUR 0xe69138
 
 ##############################################################################
 # Mutable Data
@@ -117,6 +115,9 @@ playing_field: .byte 0:512
     .globl main
 
 main:  	
+	# intialize score to 0
+	li $s4, 0
+	
 	jal draw_background
 	
 	# the tet I am generating
@@ -153,6 +154,7 @@ game_loop:
 	# s3 -- number of increments of .01 second that have passed; used for gravity
 		# if level_#_gravity (constant) of .01 seconds have passed then reset s3 to 0
 		# and tet move 1 down  
+	# s4 -- score (number of lines cleared)
 	
 	# 1a. Check if key has been pressed
 		# check even 5 milliseconds/0.005 sec if its has been pressed
@@ -354,7 +356,7 @@ game_loop:
 			
 			# check for collison with playing field
 			# calc offset based on these block_row and block_col 
-			# add to playing_fiel address
+			# add to playing_field address
 			# base + ((row index * number of columns) + column index) * 1 
 			mul $t6, $t8, GRID_COL_SIZE
 			add $t6, $t6, $t9
@@ -403,9 +405,29 @@ game_loop:
 		# if horizontal collision, don't move so go back to start of game loop
 		beq $v0, 2, game_loop
 		
-		# deal with vertical collision later, go now dont move
+		# deal with vertical collision later, so for now dont move
 		beq $v0, 1, game_loop
+		# when vertical collision happens we need:
+		#	1. the current tet in the original position (use s registers for positon) to be 
+		#	   added to the playing field
+		#	2. a new tet to be generated (j generate_new_tet)
+		# 	3. playing field drawing will happen when we call draw later, not here 
 		
+		# pseudocode for 1. add_to_playing_field
+		# takes in tet (s2), row (s0), col (s1) 
+		# gets tet num based on tet to put into playing field 
+		# loop through each block in tet, same as row_offset col_offset loop in check collision
+		# access value in current block 
+		#	(how? move $t1, $s2, increment t1 in every loop, load byte from t1 to see value)
+		#	if 0, move on to next block
+		# 	if 1, continue 
+		# calc cur block row = row (s0) + row_offset, cur block col = col (s0) + col_offset
+		# using block_row and block_col, calulate corresponding address in playing_field
+		# 	base + ((row index * number of columns) + column index) * 1
+		# 	see line 354 for example
+		# set value at that playing field address to the tet num (the value is 1 byte, not a 4 byte word, use sb)
+		# done 
+							
 		# otherwise, if no collision
 		# update the rows, columns, etc. according to movement 
 		move $s0, $a2
@@ -433,7 +455,27 @@ game_loop:
 	
 		jal draw_tet
 	
-		# later, draw playing field
+		# here we also need to draw playing field
+		# make this a func prolly that doesnt need args, it use uses the save value for tet (kinda like global var)
+		# and the playing field and the display address
+		# inside draw_playing field is where we get rid of lines and increment the score (s4)
+		#	will deal with getting rid of lines and score later
+		#	might just loop through every row to see if any all non-zero rows and shifting if require
+		#	before proceeding to second loop that does the printing
+		# loop through playing field row by row
+		# 	to do so would have a row = 0 to grid_row_size - 1, col = 0 to grid_col_size - 1 loop
+		# 	per row, check value at each block
+		# 		would do this by calculating address in playing field based on row and col
+		#		then accessing byte at each block
+		#	if value is 0, move on to next block (unoccupied so dont draw anything)
+		# 	if occupied, continue
+		#	determine what colour based on value in there
+		#	calculate the unit in the display that would need to colour
+		#		calculate row_in_overall = row_in_grid + TOP_BORDER + 1 
+		#		and col_in_overall = col_in_grid + LEFT_BORDER + 1 
+		#		use those in display_base + ((row index * number of columns) + column index) * unit_size
+		# 	store colour at that unit
+		# use the constants I create at the top for all these things
 	
 	
 	#5. Go back to 1
@@ -551,7 +593,7 @@ draw_tet:
 	# t4 = row index for row_loop/row offset
 	# t5 = col index for col_loop/ col offset
 	# t6 = color (would pop from stack later)
-	li $t6, ORANGE
+	li $t6, L_COLOUR
 	# t7 = byte located at current block address (i.e. 0 or 1)
 	# t8 = start row + row_offset
 	# t9 = start col + col_offset
