@@ -188,7 +188,7 @@ game_loop:
 		
 	temp_move_right:
 		li $a0, 0x64		   # store the key pressed
-		la $a1, ($s2)		   # store the address to the tet block
+		move $a1, $s2		   # store the address to the tet block
 		move $a2, $s0		   # row stays the same. store potential row in a2
 		move $a3, $s1		   # Store original column index. store potential col in  a3
 		addi $a3, $a3, 1	   # Increment column index
@@ -196,7 +196,7 @@ game_loop:
 		
 	temp_move_left:
 		li $a0, 0x61		   # store the key pressed
-		la $a1, ($s2)		   # store the address to the tet block
+		move $a1, $s2		   # store the address to the tet block
 		move $a2, $s0		   # row stays the same
 		move $a3, $s1		   # Store original column index
 		addi $a3, $a3, -1	   # Decrement column index
@@ -235,7 +235,7 @@ game_loop:
 
 	temp_drop:
 		li $a0, 0x73		   # store the key pressed
-		la $a1, ($s2)		   # store the address to the tet block
+		move $a1, $s2		   # store the address to the tet block
 		move $a2, $s0		   # store original row index
 		addi $a2, $a2, 1	# Increment row index
 		move $a3, $s1		# Store original column index
@@ -273,6 +273,7 @@ game_loop:
     				# otherwise vertical collision, return 1
 	
 	# t3 = current block address
+	move $t3, $a1
 	# t4 = row index for row_loop/row offset (i.e. what row index within tet)
 	# t5 = col index for col_loop/ col offset
 	# t6 = row/col of current block
@@ -302,7 +303,7 @@ game_loop:
 			lb $t7, 0($t3)
 			
 			# move on to address of next block in block_array
-			addi, $t3, $t3, 1
+			addi $t3, $t3, 1
 			
 			#increment col offset/counter
 			addi $t5, $t5, 1
@@ -325,13 +326,13 @@ game_loop:
 			j collision_col_loop
 			
 			collide:
-				li, $v0, 1 # store 1, assume vertical collision
+				li $v0, 1 # store 1, assume vertical collision
 				# check if a or d was pressed to mean horizontal collision
-				beq $a0, 0x64, horizonal_collide  # d is pressed
-				beq $a0, 0x61, horizonal_collide  # a is pressed
+				beq $a0, 0x64, horizontal_collide  # d is pressed
+				beq $a0, 0x61, horizontal_collide  # a is pressed
 				j draw
 				
-				horizonal_collide:
+				horizontal_collide:
 					li $v0, 2
 					j draw
 			
@@ -362,7 +363,7 @@ game_loop:
 		# update the rows, columns, etc. according to movement 
 		move $s0, $a2
 		move $s1, $a3
-		la $s2, ($a1)
+		move $s2, $a1
 
 		# 3. Draw the screen
 		jal draw_background
