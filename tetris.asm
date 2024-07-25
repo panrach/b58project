@@ -187,23 +187,23 @@ game_loop:
 		j game_loop # invalid key
 		
 	temp_move_right:
-		sw $a0, 4($t0)		   # store the key pressed
+		li $a0, 0x64		   # store the key pressed
 		la $a1, ($s2)		   # store the address to the tet block
-		move $s0, $a2		   # row stays the same. store potential row in a2
-		move $s1, $a3		   # Store original column index. store potential col in  a3
+		move $a2, $s0		   # row stays the same. store potential row in a2
+		move $a3, $s1		   # Store original column index. store potential col in  a3
 		addi $a3, $a3, 1	   # Increment column index
 		j check_collision
 		
 	temp_move_left:
-		sw $a0, 4($t0)		   # store the key pressed
+		li $a0, 0x61		   # store the key pressed
 		la $a1, ($s2)		   # store the address to the tet block
-		move $s0, $a2		   # row stays the same
-		move $s1, $a3		   # Store original column index
+		move $a2, $s0		   # row stays the same
+		move $a3, $s1		   # Store original column index
 		addi $a3, $a3, -1	   # Decrement column index
 		j check_collision
 	
 	temp_rotate:
-		sw $a0, 4($t0)		   # store the key pressed
+		li $a0, 0x77		   # store the key pressed
 		move $a2, $s0		   # store original row index
 		move $a3, $s1		# Store original column index
 		la $t2, L0_BLOCK  # Load address of L0_BLOCK into $t1
@@ -234,15 +234,15 @@ game_loop:
 			j check_collision
 
 	temp_drop:
-		sw $a0, 4($t0)		   # store the key pressed
+		li $a0, 0x73		   # store the key pressed
 		la $a1, ($s2)		   # store the address to the tet block
-		move $a0, $a2		   # store original row index
+		move $a2, $s0		   # store original row index
 		addi $a2, $a2, 1	# Increment row index
-		move $s1, $a3		# Store original column index
+		move $a3, $s1		# Store original column index
     	
 	check_collision:
     	# a0 -- what key is pressed
-    	# a1 -- cur tet (the constant that means the address)
+    	# a1 -- cur tet (the constant that means the address) 
     	# 	for every function except for rotate just grab the value in the stored register
     	# a2 -- row index in grid that the top left block of the tet is located at
     	# a3 -- col index in grid that the top left block of the tet is located at
@@ -325,17 +325,18 @@ game_loop:
 			j collision_col_loop
 			
 			collide:
-				sw, $v0, 1 # store 1, assume vertical collision
-				# check if a or d was pressed to mean horizontal
+				li, $v0, 1 # store 1, assume vertical collision
+				# check if a or d was pressed to mean horizontal collision
 				beq $a0, 0x64, horizonal_collide  # d is pressed
 				beq $a0, 0x61, horizonal_collide  # a is pressed
+				j draw
 				
 				horizonal_collide:
-					sw $v0, 2
-				j draw
+					li $v0, 2
+					j draw
 			
 			vertical_collide:
-				sw $v0, 1
+				li $v0, 1
 				
 			
 	# TO DO: case collision detection returns 0 (i.e. t4 is 0), update stuff for real,use move_right, etc. 
@@ -360,7 +361,7 @@ game_loop:
 		# otherwise, if no collision
 		# update the rows, columns, etc. according to movement 
 		move $s0, $a2
-		move $s1, $s3
+		move $s1, $a3
 		la $s2, ($a1)
 
 		# 3. Draw the screen
