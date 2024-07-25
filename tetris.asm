@@ -474,7 +474,7 @@ game_loop:
 		#		calculate row_in_overall = row_in_grid + TOP_BORDER + 1 
 		#		and col_in_overall = col_in_grid + LEFT_BORDER + 1 
 		#		use those in display_base + ((row index * number of columns) + column index) * unit_size
-		# 	store colour at that unit
+		# 	store colour at that unit ( the address u just calculated)
 		# use the constants I create at the top for all these things
 	
 	
