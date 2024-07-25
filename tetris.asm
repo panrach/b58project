@@ -132,47 +132,213 @@ main:
 	sw $s1, 0($sp)
 	
 	jal draw_tet
-	
-	jal game_loop
-	
-	# Sleep
-	li $v0, 32
-	li $a0, 500 # Wait one second (1000 milliseconds)
-	syscall
+
 	
 game_loop:
 	# s0 -- row in grid (starts from 0) where top left corner of tet is
 	# s1 -- col in grid (starts from 0) where top left corner of tet is
 	# s2 -- tet we are drawing
+	# s3 -- number of increments of .01 second that have passed; used for gravity
+		# if level_#_gravity (constant) of .01 seconds have passed then reset s3 to 0
+		# and tet move 1 down  
 	
 	# 1a. Check if key has been pressed
-		# continuely check if its has been pressed
+		# check even 10 milliseconds/0.01 sec if its has been pressed
 		# if yes, then check what key
+	
+	# Sleep
+	li $v0, 32
+	li $a0, 10 # Wait one second (1000 milliseconds)
+	syscall
+	
+	
+	
 	lw $t0, ADDR_KBRD
 	lw $t1,  0($t0) # load the value from the keyboard register
-	beq $t1, 1, keypress_happened
-	j game_loop # comment out to implement gravity
 	
+	# s3 incremented
+	# if s3 is == level_3_gravity then temp_drop
+	
+	bne $t1, 1, game_loop # no key has been pressed, go back 
+		
+	# TODO
     	# 1b. Check which key has been pressed
     		# if invalid, go back to checking for pressed, branch back
     		# if valid key, continue
-    		# calc new position and blcok in temp based on key pressed, push to stack to run collision dectection
+    		# calc row, col, and tet in temps based on key pressed; temps will be used by collision dectection
     			# if key is w for rotate, rotation function to change value of what we are tet we are drawing,
     			#     other parameters sent to stack stay the same
     			# if key is a, s, d, put new row and new col based on movement in temp and push them to the 
     			#     stack, others stay the same
     	
+    	keypress_happened:
+		lw $t0, ADDR_KBRD # load the address of the keyboard
+		lw $t2, 4($t0) # load the value of the key
+		
+		# TO DO
+		# these fcn should set up the arguments for collision dectection based on new position 
+		# must use adjust temps according to temp assignments
+		beq $t2, 0x64, temp_move_right  # d is pressed
+		beq $t2, 0x61, temp_move_left  # a is pressed
+		beq $t2, 0x77, temp_rotate  # w is pressed
+		beq $t2, 0x73, temp_drop  # s is pressed
+		beq $t2, 0x71, EXIT  # q is pressed, quit
+		
+		j game_loop # invalid key
+		
+	temp_move_right:
+		sw $a0, 4($t0)		   # store the key pressed
+		la $a1, ($s2)		   # store the address to the tet block
+		move $s0, $a2		   # row stays the same. store potential row in a2
+		move $s1, $a3		   # Store original column index. store potential col in  a3
+		addi $a3, $a3, 1	   # Increment column index
+		j check_collision
+		
+	temp_move_left:
+		sw $a0, 4($t0)		   # store the key pressed
+		la $a1, ($s2)		   # store the address to the tet block
+		move $s0, $a2		   # row stays the same
+		move $s1, $a3		   # Store original column index
+		addi $a3, $a3, -1	   # Decrement column index
+		j check_collision
 	
+	temp_rotate:
+		sw $a0, 4($t0)		   # store the key pressed
+		move $a2, $s0		   # store original row index
+		move $a3, $s1		# Store original column index
+		la $t2, L0_BLOCK  # Load address of L0_BLOCK into $t1
+		la $t3, L1_BLOCK  # Load address of L1_BLOCK into $t2
+		la $t4, L2_BLOCK  # Load address of L2_BLOCK into $t3
+		la $t5, L3_BLOCK  # Load address of L3_BLOCK into $t4
+	
+		# check the block type
+		beq $s2, $t2, set_L1 # If $s2 == L0_BLOCK, branch to set_L1
+		beq $s2, $t3, set_L2 # If $s2 == L1_BLOCK, branch to set_L2
+		beq $s2, $t4, set_L3 # If $s2 == L2_BLOCK, branch to set_L3
+		beq $s2, $t5, set_L0 # If $s2 == L3_BLOCK, branch to set_L1
+
+		set_L0:
+			la $a1, L0_BLOCK
+			j check_collision
+
+		set_L1:
+			la $a1, L1_BLOCK
+			j check_collision
+
+		set_L2:
+			la $a1, L2_BLOCK
+			j check_collision
+
+		set_L3:
+			la $a1, L3_BLOCK
+			j check_collision
+
+	temp_drop:
+		sw $a0, 4($t0)		   # store the key pressed
+		la $a1, ($s2)		   # store the address to the tet block
+		move $a0, $a2		   # store original row index
+		addi $a2, $a2, 1	# Increment row index
+		move $s1, $a3		# Store original column index
+    	
+	check_collision:
+    	# use temp registers for inputs for collision
+    	# whatever values aren't being changed just grab it from stored registers
+    	# a0 -- what key is pressed
+    	# a1 -- cur tet (the constant that means the address)
+    	# 	for every function except for rotate just grab the value in the stored register
+    	# a2 -- row index in grid that the top left block of the tet is located at
+    	# a3 -- col index in grid that the top left block of the tet is located at
+    	# v0 -- return
+    	#		0 if no collision
+    	#		1 if vertical collision
+    	#		2 if horizonal collsion
+    	
+    	# TO DO
     	# 2a. Check for collisions in this new position
     		# collision takes in what key was pressed + tet + row in grid + col in grid 
     		# for every block in tet (loop similar to draw tet), 
     			# if 0 move on to next block
-    			# if 1 calc where that block is on the grid which is row_in_block + row_in_grid, col_in_block + col_in_grid
+    			# if 1 calc where that block is on the grid which is block_row = row_in_block + row_in_grid, block_col = col_in_block + col_in_grid
+    				# check for collision with border 
+    				# collison if any of the following
+    				# 	block_row >= BOTTOM_BORDER
+    				#	block_col <= LEFT_BORDER
+    				#	block_col <= RIGHT_BORDER 
+    				# if collision and key pressed is 'a' or 'd', return 2 for horizontal collision
+    				# otherwise, return 1 (maybe do in opposite order, set to 1 default for collision, branch and set to 2 if horizontal)
+    				
+    				# don't do playing field check yet
+    				# this is for checking playing field collision
     				# calc offset based on these new row and new col (*1 instead of 4 in this case)
     				# checks byte at playing field + this offset != 0 then collision, otherwise no collision return 0 
     				# if key pressed is a or d then this is a horizonal collision, return 2
     				# otherwise vertical collision, return 1
-    		
+	
+	# t3 = current block address
+	# t4 = row index for row_loop/row offset
+	# t5 = col index for col_loop/ col offset
+	# t6 = new position
+	# t7 = block_array[block_counter]
+	
+	# initialize row counter
+	li $t4, -1
+
+	collision_row_loop:
+		# initialize col counter to 0
+		li $t5, 0
+		
+		# increment row counter
+		addi $t4, $t4, 1
+		
+		# if (row >= 4, exit) and go to draw)
+		bge $t4, 4, draw
+		# initialize collision to 0
+		li $v0, 0
+		
+		collision_col_loop:
+			# if (col >=4, move to next row)
+			bge $t5, 4, collision_row_loop
+			
+			# accessing current block in block_array
+			lb $t7, 0($t3)
+			
+			# move on to address of next block in block_array
+			addi, $t3, $t3, 1
+			#increment col offset/counter
+			addi $t5, $t5, 1
+			# block value is empty, continue
+			beq $t7, 0, collision_col_loop
+			# calculate potential row 
+			# block_row = current_row + row_in_grid
+			add $t6, $t4, $a2
+			# if it is greater than BOTTOM_BORDER, return 1
+			bge $t6, BOTTOM_BORDER, down_collide
+			
+			# calculate potential column
+			# block_col = current_col + col_in_grid
+			add $t6, $t5, $a3
+			# if it is greater than LEFT_BORDER or greater than RIGHT_BORDER,
+			ble $t6, LEFT_BORDER, horizontal_collide
+			bge $t6, RIGHT_BORDER, horizontal_collide
+			j collision_col_loop
+			
+			horizontal_collide:
+				sw, $v0, 1 # store 1
+				# check if a or d was pressed 
+				beq $a0, 0x64, button_pressed  # d is pressed
+				beq $a0, 0x61, button_pressed  # a is pressed
+				
+				button_pressed:
+					add $v0, $v0, 1
+				j draw
+			
+			down_collide:
+				sw $v0, 1
+				j draw	
+			
+	# TO DO: case collision detection returns 0 (i.e. t4 is 0), update stuff for real,use move_right, etc. 
+	# also do case returns 2, branch back to game_loop, no need to redraw
+	# case where it return 1 is impossible for rignt now, dont do it
 	# 2b. Update locations (cur_tet_row, cur_tet_col)
 		# takes in key pressed, output of collision check
 		# if collision returned 0, then move based on key pressed, 
@@ -182,11 +348,12 @@ game_loop:
 		#        maybe functon for add position to playing field 
 		#        generate new piece to put in s2
 	
-	# currently increment row to move down
-    	# you would do different things to row and col based on what key was pressed
-    	# this is part of 2b
-	addi $s0, $s0, 1
-	
+	draw: 
+	beq $v0, 2, game_loop
+	move $a2, $s0
+	move $a3, $s1
+	la $s2, ($a1)
+
 	# 3. Draw the screen
 	jal draw_background
 	
@@ -207,13 +374,7 @@ game_loop:
 	
 	jal draw_tet
 	
-	# if end of screen, end
-	bge $s0, 20, EXIT
-	
-	# 4. Sleep
-	li $v0, 32
-	li $a0, 100 # Wait one second (1000 milliseconds)
-	syscall
+	# later, draw playing field
 	
 	
 	#5. Go back to 1
@@ -224,26 +385,19 @@ EXIT:
     	li $v0, 10
     	syscall
 
-keypress_happened:
-	lw $t0, ADDR_KBRD # load the address of the keyboard
-	lw $t2, 4($t0) # load the value of the key 
-	beq $t2, 0x64, move_right  # d is pressed
-	beq $t2, 0x61, move_left  # a is pressed
-	beq $t2, 0x77, rotate  # w is pressed
-	beq $t2, 0x73, drop  # s is pressed
-	beq $t2, 0x71, EXIT  # q is pressed, quit
+
 	
 	j game_loop
 	
-move_right:
+move_right: # not really useful as a fcn bc we only use it once, pre-collison detec we need to put in temps
 	addi $s1, $s1, 1           # Increment column index
-	j set_params
+	j draw
 	
 move_left:
 	addi $s1, $s1, -1           # Decrement column index
-	j set_params
+	j draw
 
-rotate:
+actual_rotate:
 	la $t1, L0_BLOCK  # Load address of L0_BLOCK into $t1
 	la $t2, L1_BLOCK  # Load address of L1_BLOCK into $t2
 	la $t3, L2_BLOCK  # Load address of L2_BLOCK into $t3
@@ -255,47 +409,9 @@ rotate:
 	beq $s2, $t3, set_L3 # If $s2 == L2_BLOCK, branch to set_L3
 	beq $s2, $t4, set_L0 # If $s2 == L3_BLOCK, branch to set_L1
 
-set_L0:
-	la $s2, L0_BLOCK
-	j set_params
-
-set_L1:
-	la $s2, L1_BLOCK
-	j set_params
-
-set_L2:
-	la $s2, L2_BLOCK
-	j set_params
-
-set_L3:
-	la $s2, L3_BLOCK
-	j set_params
-
-drop:
+actual_drop:
 	addi $s0, $s0, 1           # Increment row index
-	j set_params
-	
-set_params:
-	
-	# the block I am generating
-	# would be randomized in final
-	
-	# set up to call draw_tet
-	# move up a word to give space for the block address
-	addi $sp, $sp, -4
-	sw $s2, 0($sp)
-	
-	# make room for row
-	addi $sp, $sp, -4
-	sw $s0, 0($sp)
-	
-	# make room for column
-	addi $sp, $sp, -4
-	sw $s1, 0($sp)
-	jal draw_background
-	jal draw_tet
-
-	j game_loop
+	j draw
 	
 
 draw_background:
