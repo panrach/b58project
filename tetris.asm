@@ -52,11 +52,6 @@ ADDR_DSPL:
 ADDR_KBRD:
     .word 0xffff0000
 
-# to store playing field
-# 0 if unoccupied
-# number reping colour is occupied
-playing_field: .byte 0:512
-
 # L block and all its rotations
 L0_BLOCK: 
 	.byte 0 1 0 0
@@ -109,6 +104,11 @@ L3_BLOCK:
 ##############################################################################
 # Mutable Data
 ##############################################################################
+
+# to store playing field
+# 0 if unoccupied
+# number reping colour is occupied
+playing_field: .byte 0:512
 
 ##############################################################################
 # Code
@@ -290,19 +290,20 @@ game_loop:
 	move $t3, $a1
 	# t4 = row index for row_loop/row offset (i.e. what row index within tet)
 	# t5 = col index for col_loop/col offset
+	# t6 = offset for playing field + playing field address
 	# t8 = row of current block
 	# t9 = col of current block
 	# t7 = cur block in tet which is 1 or 0 (located at cur block address)
 	
 	# initialize row index
-	li $t4, -1
+	li $t4, -1 # -1 bc it gets incremented to 0 in the row_loop 
 	
 	# initialize collision to 0 (no collision)
 	li $v0, 0
 
 	collision_row_loop:
 		# initialize col index to 0
-		li $t5, 0
+		li $t5, -1 # negative bc it get incremented to 0 in the col_loop
 		
 		# increment row counter
 		addi $t4, $t4, 1
@@ -311,6 +312,9 @@ game_loop:
 		bge $t4, 4, update_location
 		
 		collision_col_loop:
+			#increment col offset/counter
+			addi $t5, $t5, 1
+			
 			# if (col >=4, move to next row)
 			bge $t5, 4, collision_row_loop
 			
@@ -320,25 +324,52 @@ game_loop:
 			# move on to address of next block
 			addi $t3, $t3, 1
 			
-			#increment col offset/counter
-			addi $t5, $t5, 1
-			
 			# block value is empty, move on to next block
 			beq $t7, 0, collision_col_loop
 			
 			# calculate row where cur block would be
 			# block_row = row_index + row_in_grid (given by argument)
 			add $t8, $t4, $a2
-			# if it is greater than BOTTOM_BORDER, return 1
-			bge $t8, BOTTOM_BORDER, vertical_collide
+			
 			
 			# calculate column where cur block would be
 			# block_col = col_index + col_in_grid
 			add $t9, $t5, $a3
+			
+			
+			# check for collision with walls
+			# add TOP_BORDER + 1 to block_row to get overall row in entire screen
+			# if it is greater than BOTTOM_BORDER, return 1
+			addi $t1, $t8, TOP_BORDER
+			addi $t1, $t1, 1
+			bge $t1, BOTTOM_BORDER, vertical_collide
+			# add LEFT_BORDER + 1 to block_col to get overall col in entire screen
 			# if it is less than LEFT_BORDER or greater than RIGHT_BORDER,
-			ble $t9, LEFT_BORDER, collide
-			bge $t9, RIGHT_BORDER, collide
+			addi $t1, $t9, LEFT_BORDER
+			addi $t1, $t1, 1
+			ble $t1, LEFT_BORDER, collide
+			bge $t1, RIGHT_BORDER, collide
 			j collision_col_loop
+			
+			
+			# check for collison with playing field
+			# calc offset based on these block_row and block_col 
+			# add to playing_fiel address
+			# base + ((row index * number of columns) + column index) * 1 
+			mul $t6, $t8, GRID_COL_SIZE
+			add $t6, $t6, $t9
+			la $t1, playing_field
+			add $t6, $t6, $t1
+			
+			# check value in playing field to see if occupied or not
+			lb $t1, 0($t6)
+			# if value is not 0, i.e. occupied, collision
+			bne $t1, 0, collide
+			# otherwise, no collision move on to next block
+			j collision_col_loop
+			
+			
+			
 			
 			collide:
 				li $v0, 1 # store 1, assume vertical collision
@@ -372,7 +403,8 @@ game_loop:
 		# if horizontal collision, don't move so go back to start of game loop
 		beq $v0, 2, game_loop
 		
-		# deal with vertical collision later
+		# deal with vertical collision later, go now dont move
+		beq $v0, 1, game_loop
 		
 		# otherwise, if no collision
 		# update the rows, columns, etc. according to movement 
@@ -429,7 +461,7 @@ draw_background:
 	
 		# calculate the address of the current unit in t7
 		li $t8, UNIT_SIZE			# t8 = unit size (4 bytes)
-		# base + ((row index * number of columns) + column index) * pixel size 
+		# base + ((row index * number of columns) + column index) * unit size 
     		# row index * number of columns
     		mul $t7, $t5, $t4
     		# (row index * num columns) + column index
