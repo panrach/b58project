@@ -129,7 +129,7 @@ main:
 	
 	# set up starting row and col
 	# s registers for draw, a registers for collision detection
-	li $s0, 0 # row to where tet starts off
+	li $s0, 16 # row to where tet starts off
 	li $s1, 5 # col to where tet starts off
 	move $a2, $s0 # row to where tet starts off
 	move $a3, $s1 # col to where tet starts off
@@ -144,7 +144,7 @@ main:
 	generate_L:
 		la $s2, L0_BLOCK
 		move $a1, $s2
-		j check_spawn_collision
+		j check_collision
 
 	
 game_loop:
@@ -611,9 +611,8 @@ add_to_playing_field:
 		addi $t1, $t1, 1
 
 		# if (row >= 4, exit)
-		bge $t1, 4, generate_new_tet
-
-		# increment col counter
+		bge $t1, 4, clear_row
+		
 		add_playing_field_col_loop:
 			# incerement col counter
 			addi $t2, $t2, 1
@@ -647,6 +646,148 @@ add_to_playing_field:
 			sb $t0, 0($t7) # set the value at the playing field address to the tet num
 			
 			j add_playing_field_col_loop
+
+clear_row:
+	# t0: row index for row_loop
+	# t1: col index for col_loop
+	# t2: counter for clear_row_loop
+	# t3: the address of the current block in the playing field
+	# t4: the value at the current block
+	# t5: shifted_address (for shift_loop)
+	# t6: shift_into_address (for shift_loop)
+	# t7: COL_SIZE - 1 (can overwrite later if needed)
+	# t8: playing field address (can overwrite later if needed)
+
+	# jump to draw_tet when we jump out of row loop
+	# 	int row = row_size;
+
+	# store the address of the playing field in $t8
+	la $t8, playing_field
+
+	# initialize row index to row_size
+	li $t0, GRID_ROW_SIZE
+
+	# loop through the rows
+	# row row row your boat, gently down the stream!
+	# merrily merrily merrily merrily, life is but a dream!
+	clear_row_row_loop: 		# while (row >= 0)
+		li $t1, -1 				# initialize col index to -1
+		addi $t0, $t0, -1 		# decrement row counter
+		blt $t0, 0, generate_new_tet 	# if row < 0, exit
+
+		clear_row_col_loop:
+			# increment col counter
+			addi $t1, $t1, 1
+			bge $t1, GRID_COL_SIZE, clear_row_row_loop
+
+			# calculate the address of the current block in the playing field
+			# base + ((row index * number of columns) + column index) * 1
+			mul $t3, $t0, GRID_COL_SIZE # row index * number of columns
+			add $t3, $t3, $t1 # (row index * number of columns) + column index
+			add $t3, $t3, $t8 # add offset to base
+
+			# check the value at the current block
+			# if the value is 0, move on to the next row
+			lb $t4, 0($t3)
+			beq $t4, 0, clear_row_row_loop
+
+			# check if we are at the end of a row
+			li $t7, GRID_COL_SIZE
+			addi $t7, $t7, -1
+			# not at end of row, jump back to col loop to check next block in row
+			bne $t1, $t7, clear_row_col_loop
+
+			# if (col == col_size - 1), continue. otherwise jump
+			# we have a full row that we need to clear 
+
+			# shifted_address (t5) = curaddress - col_size
+			sub $t5, $t3, GRID_COL_SIZE
+			# shift_into_address (t6) = curaddress
+			move $t6, $t3
+
+			# while (shifted_address >= playing_field)
+			shift_loop:
+				# if shifted_address >= playing_field
+				# make a label called add 0 and then from there jump back to the row loop
+				blt $t5, $t8 zero_out_top_row
+
+				# copy the block at shifted_address to shift_into_address
+				lb $t9, 0($t5)
+				sb $t9, 0($t6)
+
+				# decrement shifted_address and shift_into_address by 1
+				addi $t5, $t5, -1
+				addi $t6, $t6, -1
+				j shift_loop
+
+			zero_out_top_row:
+				# t7: make_zero_address = playing_field
+				la $t7, playing_field
+				# t8: playing_field address + col_size 
+				la $t8, playing_field
+				addi $t8, $t8, GRID_COL_SIZE
+
+				# while (make_zero_address < playing_field + col_size)
+				zero_out_top_row_loop:
+					
+					bge $t7, $t8, zero_out_done
+
+					# make the block at make_zero_address 0
+					sb $zero, 0($t7)
+					
+					# increment make_zero_address
+					addi $t7, $t7, 1
+
+					j zero_out_top_row_loop
+			
+				zero_out_done:
+					# increment row counter
+					addi $t0, $t0, 1
+		j clear_row_row_loop
+			
+	# while (row >= 0) {
+	#     # 0 if we encounter a 0 which means the row is not full
+	#     # 1 so, we have only encountered non-zeros
+
+	#     row--;
+
+	#     int col = -1
+
+	#     while (col < col_size) {
+	#         col++;
+	#         # calc cur address to check if the block is full
+	#         int curaddress = playing_field + (row * col_size + col);
+	#         if (playing_field[row][col] == 0) {
+	#             j row_loop
+	#         }
+	#         if (col == col_size -1) {
+	#             # there been all non-zeroes so far
+	#             # we have a full row
+	#             # we need to remove the row
+
+				
+	#             int shifted_address = curaddress - col_size; 
+	#             int shift_into_address = curaddress;
+	#             while (shifted_address >= playing_field) {
+	#                 # copy the block at shifted_address to shift_into_address
+	#                 # decrement shifted_address and shift_into_address by 1
+	#                 shifted_address--;
+	#                 shift_into_address--;
+	#             }
+
+	#             # we need to fill the top row with zeros
+	#             int make_zero_address = playing_field;
+	#             while (make_zero_address < playing_field + col_size) {
+	#                 # make the block at make_zero_address 0
+	#                 make_zero_address++;
+	#             }
+
+	#             row++;
+	#         }
+	#     }
+	# }
+
+		
 
 	
 draw_background:
@@ -723,95 +864,6 @@ draw_background:
     	
     	jr $ra
     
-	check_spawn_collision:
-    	# a0 -- what key is pressed
-    	# a1 -- cur tet (the constant that means the address) 
-    	# 	for every function except for rotate just grab the value in the stored register
-    	# a2 -- row index in grid that the top left block of the tet is located at
-    	# a3 -- col index in grid that the top left block of the tet is located at
-    	# if no collision, update locations
-    	# if collision, exit (game over)
-    				
-	
-	# t3 = current block address
-	move $t3, $a1
-	# t4 = row index for row_loop/row offset (i.e. what row index within tet)
-	# t5 = col index for col_loop/col offset
-	# t6 = offset for playing field + playing field address
-	# t8 = row of current block
-	# t9 = col of current block
-	# t7 = cur block in tet which is 1 or 0 (located at cur block address)
-	
-	# initialize row index
-	li $t4, -1 # -1 bc it gets incremented to 0 in the row_loop 
-	
-	# initialize collision to 0 (no collision)
-	li $v0, 0
-
-	spawn_collision_row_loop:
-		# initialize col index to 0
-		li $t5, -1 # negative bc it get incremented to 0 in the col_loop
-		
-		# increment row counter
-		addi $t4, $t4, 1
-		
-		# if (row >= 4, exit) and go to draw, no collision
-		bge $t4, 4, update_location
-		
-		spawn_collision_col_loop:
-			#increment col offset/counter
-			addi $t5, $t5, 1
-			
-			# if (col >=4, move to next row)
-			bge $t5, 4, spawn_collision_row_loop
-			
-			# accessing value of current block
-			lb $t7, 0($t3)
-			
-			# move on to address of next block
-			addi $t3, $t3, 1
-			
-			# block value is empty, move on to next block
-			beq $t7, 0, spawn_collision_col_loop
-			
-			# calculate row where cur block would be
-			# block_row = row_index + row_in_grid (given by argument)
-			add $t8, $t4, $a2
-			
-			# calculate column where cur block would be
-			# block_col = col_index + col_in_grid
-			add $t9, $t5, $a3
-			
-			# check for collision with walls
-			# add TOP_BORDER + 1 to block_row to get overall row in entire screen
-			# if it is greater than BOTTOM_BORDER, return 1
-			addi $t1, $t8, TOP_BORDER
-			addi $t1, $t1, 1
-			bge $t1, BOTTOM_BORDER, EXIT
-			# add LEFT_BORDER + 1 to block_col to get overall col in entire screen
-			# if it is less than LEFT_BORDER or greater than RIGHT_BORDER,
-			addi $t1, $t9, LEFT_BORDER
-			addi $t1, $t1, 1
-			ble $t1, LEFT_BORDER, EXIT
-			bge $t1, RIGHT_BORDER, EXIT
-			
-			# check for collison with playing field
-			# calc offset based on these block_row and block_col 
-			# add to playing_field address
-			# base + ((row index * number of columns) + column index) * 1 
-			mul $t6, $t8, GRID_COL_SIZE
-			add $t6, $t6, $t9
-			la $t0, playing_field
-			add $t6, $t6, $t0
-			
-			# check value in playing field to see if occupied or not
-			lb $t1, 0($t6)
-			# if value is not 0, i.e. occupied, collision
-			bne $t1, 0, EXIT
-			# otherwise, no collision move on to next block
-			j spawn_collision_col_loop
-			
-
 draw_tet:
 	lw $t0, ADDR_DSPL
 	
