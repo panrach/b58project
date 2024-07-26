@@ -333,11 +333,9 @@ game_loop:
 			# block_row = row_index + row_in_grid (given by argument)
 			add $t8, $t4, $a2
 			
-			
 			# calculate column where cur block would be
 			# block_col = col_index + col_in_grid
 			add $t9, $t5, $a3
-			
 			
 			# check for collision with walls
 			# add TOP_BORDER + 1 to block_row to get overall row in entire screen
@@ -352,7 +350,6 @@ game_loop:
 			ble $t1, LEFT_BORDER, collide
 			bge $t1, RIGHT_BORDER, collide
 			j collision_col_loop
-			
 			
 			# check for collison with playing field
 			# calc offset based on these block_row and block_col 
@@ -369,9 +366,6 @@ game_loop:
 			bne $t1, 0, collide
 			# otherwise, no collision move on to next block
 			j collision_col_loop
-			
-			
-			
 			
 			collide:
 				li $v0, 1 # store 1, assume vertical collision
@@ -404,32 +398,9 @@ game_loop:
 		# check output of collision detection
 		# if horizontal collision, don't move so go back to start of game loop
 		beq $v0, 2, game_loop
-		
 		# deal with vertical collision later, so for now dont move
-		beq $v0, 1, game_loop
-		# when vertical collision happens we need:
-		#	1. the current tet in the original position (use s registers for positon) to be 
-		#	   added to the playing field
-		#	2. a new tet to be generated (j generate_new_tet)
-		# 	3. playing field drawing will happen when we call draw later, not here 
-		
-		# pseudocode for 1. add_to_playing_field
-		# takes in tet (s2), row (s0), col (s1) 
-		# gets tet num based on tet to put into playing field 
-		# loop through each block in tet, same as row_offset col_offset loop in check collision
-		# access value in current block 
-		#	(how? move $t1, $s2, increment t1 in every loop, load byte from t1 to see value)
-		#	if 0, move on to next block
-		# 	if 1, continue 
-		# calc cur block row = row (s0) + row_offset, cur block col = col (s0) + col_offset
-		# using block_row and block_col, calulate corresponding address in playing_field
-		# 	base + ((row index * number of columns) + column index) * 1
-		# 	see line 354 for example
-		# set value at that playing field address to the tet num (the value is 1 byte, not a 4 byte word, use sb)
-		# done 
-							
-		# otherwise, if no collision
-		# update the rows, columns, etc. according to movement 
+		beq $v0, 1, add_to_playing_field
+		# otherwise, no collision, update locations for real
 		move $s0, $a2
 		move $s1, $a3
 		move $s2, $a1
@@ -462,6 +433,7 @@ game_loop:
 		#	will deal with getting rid of lines and score later
 		#	might just loop through every row to see if any all non-zero rows and shifting if require
 		#	before proceeding to second loop that does the printing
+
 		# loop through playing field row by row
 		# 	to do so would have a row = 0 to grid_row_size - 1, col = 0 to grid_col_size - 1 loop
 		# 	per row, check value at each block
@@ -476,24 +448,207 @@ game_loop:
 		#		use those in display_base + ((row index * number of columns) + column index) * unit_size
 		# 	store colour at that unit ( the address u just calculated)
 		# use the constants I create at the top for all these things
-	
+
+		draw_playing_field:
+		
+		# loop through playing field row by row
+		# t0 = current block address in display
+		# t1 = current row index
+		# t2 = current column index
+		# t3 = address of playing field
+		# t4 = value at current block
+		# t5 = row to color in overall display
+		# t6 = column to color in overall display
+		# t7 = address of unit in display
+		# t8 = temp register for color
+
+		# initialize current row index to -1 (we increment in in the loop)
+		li $t1, -1
+
+		draw_playing_field_row_loop:
+			# loop through the playing field row by row
+			# initialize current column index to -1 (-1 because we increment it in the loop)
+			li $t2, -1 
+			# increment row counter
+			addi $t1, $t1, 1
+
+			# if row >= GRID_ROW_SIZE, exit
+			bge $t1, GRID_ROW_SIZE, game_loop
+
+			# increment column counter
+			draw_playing_field_col_loop:
+				# increment column counter
+				addi $t2, $t2, 1
+
+				# if col >= GRID_COL_SIZE, move to next row
+				bge $t2, GRID_COL_SIZE, draw_playing_field_row_loop
+
+				# check the value at each block
+				# calculate the address of the current block in the playing field
+				# base + ((row index * number of columns) + column index) * 1
+				# t0 contains the address of the current block in the playing field
+				mul $t0, $t1, GRID_COL_SIZE # row index * number of columns
+				add $t0, $t0, $t2 # (row index * number of columns) + column index
+				add $t0, $t0, ADDR_DSPL_CONST # add offset to base
+
+				# check the value at the current block
+				lb $t4, 0($t0)
+
+				# if the value is 0, move on to the next block
+				beq $t4, 0, draw_playing_field_col_loop
+
+				# calculate the unit in the display that would need to be coloured
+				# calculate the row in the overall display
+				# row_in_overall = row_in_grid + TOP_BORDER + 1
+				addi $t5, $t1, TOP_BORDER # row_in_grid + TOP_BORDER
+				addi $t5, $t5, 1 # row_in_grid + TOP_BORDER + 1
+
+				# calculate the column in the overall display
+				# col_in_overall = col_in_grid + LEFT_BORDER + 1
+				addi $t6, $t2, LEFT_BORDER # col_in_grid + LEFT_BORDER
+				addi $t6, $t6, 1 # col_in_grid + LEFT_BORDER + 1
+
+				# calculate the address of the unit in the display
+				# base + ((row index * number of columns) + column index) * unit size
+				mul $t7, $t5, COL_SIZE # row index * number of columns
+				add $t7, $t7, $t6 # (row index * number of columns) + column index
+				mul $t7, $t7, UNIT_SIZE # (row index * number of columns + column index) * unit size
+				addi $t7, $t7, ADDR_DSPL_CONST # add offset to base
+
+				# store the colour at that unit
+				# t4 tells us the color of the block
+				# if the value is 1, store the L block colour
+				beq $t4, L_NUM, store_orange
+				
+				store_orange:
+					li $t8, L_COLOUR # store orange into t8
+
+				# t4 contains the value at the current block. it is a color. store it into the address of unit in display
+				sw $t8, 0($t7)
 	
 	#5. Go back to 1
 	b game_loop	
+
 
 EXIT: 
 	# Exit the program
     	li $v0, 10
     	syscall
 
+		# when vertical collision happens we need:
+		#	1. the current tet in the original position (use s registers for positon) to be 
+		#	   added to the playing field
+		#	2. a new tet to be generated (j generate_new_tet)
+		# 	3. playing field drawing will happen when we call draw later, not here 
+		
+		# pseudocode for 1. add_to_playing_field
+		# takes in tet (s2), row (s0), col (s1) 
+		# gets tet num based on tet to put into playing field 
+		# loop through each block in tet, same as row_offset col_offset loop in check collision
+		# access value in current block 
+		#	(how? move $t1, $s2, increment t1 in every loop, load byte from t1 to see value)
+		#	if 0, move on to next block
+		# 	if 1, continue 
+		# calc cur block row = row (s0) + row_offset, cur block col = col (s0) + col_offset
+		# using block_row and block_col, calulate corresponding address in playing_field
+		# 	base + ((row index * number of columns) + column index) * 1
+		# 	see line 354 for example
+		# set value at that playing field address to the tet num (the value is 1 byte, not a 4 byte word, use sb)
+		# done 
+							
+		# otherwise, if no collision
+		# update the rows, columns, etc. according to movement 
+		
+add_to_playing_field:
+	# takes in tet (s2), row (s0), col (s1) 
+	# t0 = the tet num
+	# t1 = row index for row_loop
+	# t2 = col index for col_loop
+	# t3 = current block address
+	# t4  = cur block in tet which is 1 or 0 (located at cur block address)
+	# t5 = block_row = row_in_block + row_in_grid
+	# t6 = block_col = col_in_block + col_in_grid
+	# t7 = location on playing field
+	# t8 = temporary register to store the address of the block
+
+	# initialize row index for add_playing_field_row__loop
+	li $t1, -1
+
+	# move the address of the tet to $t3
+	move $t3, $s2
+
+	# gets tet num based on tet to put into playing field
+	# store L0_BLOCK address in $t8
+	la $t8, L0_BLOCK
+	# check if s2 == t8
+	beq $s2, $t8, set_L
+
+	# store L1_BLOCK address in $t8
+	la $t8, L1_BLOCK
+	# check if s2 == t8
+	beq $s2, $t8, set_L
+
+	# store L2_BLOCK address in $t8
+	la $t8, L2_BLOCK
+	# check if s2 == t8
+	beq $s2, $t8, set_L
+
+	# store L3_BLOCK address in $t8
+	la $t8, L3_BLOCK
+	# check if s3 == t8
+	beq $s2, $t8, set_L
+
+	set_L:
+		li $t0, L_NUM
+		j add_playing_field_row_loop
 	
+	add_playing_field_row_loop:
+		# initialize col index
+		li $t2, -1
+		# increment row counter
+		addi $t1, $t1, 1
+
+		# if (row >= 4, exit)
+		bge $t1, 4, generate_new_tet
+
+		# increment col counter
+		add_playing_field_col_loop:
+			# incerement col counter
+			addi $t2, $t2, 1
+
+			# if (col >= 4, move to next row)
+			bge $t2, 4, add_playing_field_row_loop
+
+			# access the value of the current block
+			lb $t4, 0($t3)
+
+			# move on to the address of the next block
+			addi $t3, $t3, 1
+
+			# block value is empty: no need to add to playing field, continue
+			beq $t4, 0, add_playing_field_col_loop
+
+			# otherwise, calculate the row where the current block would be
+			# block_row = row_index + row_in_grid
+			add $t5, $t1, $s0
+			# calculate the column where the current block would be
+			# block_col = col_index + col_in_grid
+			add $t6, $t2, $s1
+
+			# calculate the location on the playing field
+			# base + ((row index * number of columns) + column index) * 1
+			mul $t7, $t5, GRID_COL_SIZE # (row index * number of columns)
+			add $t7, $t7, $t6 # (row index * number of columns) + column_index
+			addi $t7, $t7, ADDR_DSPL_CONST # add offset to base
+
+			sb $t0, 0($t7) # set the value at the playing field address to the tet num
+
 	
 draw_background:
     	# initialize cur row index to 0
     	li $t5, 0	# t5 = cur_row = 0
     	# initialize cur column index to 0
     	li $t6, 0	# t6 = cur_col = 0
-    	
 
 	bg_loop:
 		# initalize values for calculating address of current unit
