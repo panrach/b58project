@@ -241,21 +241,25 @@ if 16s-digit = 15, draw_16s_digit_f
 
 draw_16s_digit_0:
 
-.eqv SCORE_COLOR 0xFFFFFF 
+.eqv SCORE_COLOUR 0xFFFFFF 
 
 # t0 -- address to colour
 # t1 -- temp used for calculations
 # t2 -- score colour
 
-li $t2, SCORE_COLOR
+li $t2, SCORE_COLOUR
 
 li $t0, ADDR_DSPL_CONST
-li $t1, 24  -- copy paste expect for this number 24
+li $t1, #  -- copy paste expect for this number #
 mul $t1, $t1, 4
 add $t0, $t0, $t1
-sw $t3, $t0 #store the colour in the appropriate pixel
+sw $t3, $t0 # store the colour in the appropriate pixel
 
 would do this for every pixel
+
+OR WE COULD store all the offset for the pixels we need for each
+as well as the number of pixels as an array
+and loop through them to colour (prolly easier in terms of copy pasting)
 
 
 
