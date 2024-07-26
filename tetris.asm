@@ -144,7 +144,7 @@ main:
 	generate_L:
 		la $s2, L0_BLOCK
 		move $a1, $s2
-		j check_collision
+		j check_spawn_collision
 
 	
 game_loop:
@@ -723,6 +723,95 @@ draw_background:
     	
     	jr $ra
     
+	check_spawn_collision:
+    	# a0 -- what key is pressed
+    	# a1 -- cur tet (the constant that means the address) 
+    	# 	for every function except for rotate just grab the value in the stored register
+    	# a2 -- row index in grid that the top left block of the tet is located at
+    	# a3 -- col index in grid that the top left block of the tet is located at
+    	# if no collision, update locations
+    	# if collision, exit (game over)
+    				
+	
+	# t3 = current block address
+	move $t3, $a1
+	# t4 = row index for row_loop/row offset (i.e. what row index within tet)
+	# t5 = col index for col_loop/col offset
+	# t6 = offset for playing field + playing field address
+	# t8 = row of current block
+	# t9 = col of current block
+	# t7 = cur block in tet which is 1 or 0 (located at cur block address)
+	
+	# initialize row index
+	li $t4, -1 # -1 bc it gets incremented to 0 in the row_loop 
+	
+	# initialize collision to 0 (no collision)
+	li $v0, 0
+
+	spawn_collision_row_loop:
+		# initialize col index to 0
+		li $t5, -1 # negative bc it get incremented to 0 in the col_loop
+		
+		# increment row counter
+		addi $t4, $t4, 1
+		
+		# if (row >= 4, exit) and go to draw, no collision
+		bge $t4, 4, update_location
+		
+		spawn_collision_col_loop:
+			#increment col offset/counter
+			addi $t5, $t5, 1
+			
+			# if (col >=4, move to next row)
+			bge $t5, 4, spawn_collision_row_loop
+			
+			# accessing value of current block
+			lb $t7, 0($t3)
+			
+			# move on to address of next block
+			addi $t3, $t3, 1
+			
+			# block value is empty, move on to next block
+			beq $t7, 0, spawn_collision_col_loop
+			
+			# calculate row where cur block would be
+			# block_row = row_index + row_in_grid (given by argument)
+			add $t8, $t4, $a2
+			
+			# calculate column where cur block would be
+			# block_col = col_index + col_in_grid
+			add $t9, $t5, $a3
+			
+			# check for collision with walls
+			# add TOP_BORDER + 1 to block_row to get overall row in entire screen
+			# if it is greater than BOTTOM_BORDER, return 1
+			addi $t1, $t8, TOP_BORDER
+			addi $t1, $t1, 1
+			bge $t1, BOTTOM_BORDER, EXIT
+			# add LEFT_BORDER + 1 to block_col to get overall col in entire screen
+			# if it is less than LEFT_BORDER or greater than RIGHT_BORDER,
+			addi $t1, $t9, LEFT_BORDER
+			addi $t1, $t1, 1
+			ble $t1, LEFT_BORDER, EXIT
+			bge $t1, RIGHT_BORDER, EXIT
+			
+			# check for collison with playing field
+			# calc offset based on these block_row and block_col 
+			# add to playing_field address
+			# base + ((row index * number of columns) + column index) * 1 
+			mul $t6, $t8, GRID_COL_SIZE
+			add $t6, $t6, $t9
+			la $t0, playing_field
+			add $t6, $t6, $t0
+			
+			# check value in playing field to see if occupied or not
+			lb $t1, 0($t6)
+			# if value is not 0, i.e. occupied, collision
+			bne $t1, 0, EXIT
+			# otherwise, no collision move on to next block
+			j spawn_collision_col_loop
+			
+
 draw_tet:
 	lw $t0, ADDR_DSPL
 	
