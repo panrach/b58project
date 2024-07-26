@@ -349,7 +349,6 @@ game_loop:
 			addi $t1, $t1, 1
 			ble $t1, LEFT_BORDER, collide
 			bge $t1, RIGHT_BORDER, collide
-			j collision_col_loop
 			
 			# check for collison with playing field
 			# calc offset based on these block_row and block_col 
