@@ -357,8 +357,8 @@ game_loop:
 			# base + ((row index * number of columns) + column index) * 1 
 			mul $t6, $t8, GRID_COL_SIZE
 			add $t6, $t6, $t9
-			la $t1, playing_field
-			add $t6, $t6, $t1
+			la $t0, playing_field
+			add $t6, $t6, $t0
 			
 			# check value in playing field to see if occupied or not
 			lb $t1, 0($t6)
@@ -489,7 +489,8 @@ game_loop:
 				# t0 contains the address of the current block in the playing field
 				mul $t0, $t1, GRID_COL_SIZE # row index * number of columns
 				add $t0, $t0, $t2 # (row index * number of columns) + column index
-				add $t0, $t0, ADDR_DSPL_CONST # add offset to base
+				la $t9, playing_field
+                		add $t0, $t0, $t9 # add offset to base
 
 				# check the value at the current block
 				lb $t4, 0($t0)
@@ -525,6 +526,8 @@ game_loop:
 
 				# t4 contains the value at the current block. it is a color. store it into the address of unit in display
 				sw $t8, 0($t7)
+				
+				j draw_playing_field_col_loop
 	
 	#5. Go back to 1
 	b game_loop	
@@ -639,9 +642,12 @@ add_to_playing_field:
 			# base + ((row index * number of columns) + column index) * 1
 			mul $t7, $t5, GRID_COL_SIZE # (row index * number of columns)
 			add $t7, $t7, $t6 # (row index * number of columns) + column_index
-			addi $t7, $t7, ADDR_DSPL_CONST # add offset to base
+			la $t9, playing_field
+            		add $t7, $t7, $t9 # add offset to base
 
 			sb $t0, 0($t7) # set the value at the playing field address to the tet num
+			
+			j add_playing_field_col_loop
 
 	
 draw_background:
