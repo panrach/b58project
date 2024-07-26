@@ -52,6 +52,28 @@ ADDR_DSPL:
 ADDR_KBRD:
     .word 0xffff0000
 
+# J block and all its rotations
+J0_BLOCK: 
+	.byte 0 0 1 0
+	.byte 0 0 1 0
+	.byte 0 1 1 0
+	.byte 0 0 0 0
+J1_BLOCK: 
+	.byte 0 0 0 0
+	.byte 0 1 0 0
+	.byte 0 1 1 1
+	.byte 0 0 0 0
+J2_BLOCK: 
+	.byte 0 0 0 0
+	.byte 0 1 1 0
+	.byte 0 1 0 0
+	.byte 0 1 0 0
+J3_BLOCK: 
+	.byte 0 0 0 0
+	.byte 1 1 1 0
+	.byte 0 0 1 0
+	.byte 0 0 0 0
+
 # L block and all its rotations
 L0_BLOCK: 
 	.byte 0 1 0 0
@@ -74,6 +96,7 @@ L3_BLOCK:
 	.byte 1 1 1 0
 	.byte 0 0 0 0
 
+.eqv MAX_TET_NUM 3
 .eqv ADDR_DSPL_CONST 0x10008000
 .eqv UNIT_SIZE 4	# Size of each unit in bytes
 
@@ -102,10 +125,11 @@ L3_BLOCK:
 
 # what number each tet is assoicated with (used for picking random piece)
 # also used for colouring
-.eqv L_NUM 1
-
+.eqv J_NUM 1
+.eqv L_NUM 2
 # colours for blocks
 .eqv L_COLOUR 0xe69138
+.eqv J_COLOUR 0xffd1f5 
 
 ##############################################################################
 # Mutable Data
@@ -147,12 +171,26 @@ main:
 	move $a2, $s0 # row to where tet starts off
 	move $a3, $s1 # col to where tet starts off
 	
-	# generate random num
+	# generate random num and store into t1
 	# not yet, will do after implementing full set
-	li $t1, 1 # this would generate a number from 1-7 instead and put in t1
+	li $v0, 42
+	li $a0, 0
+	li $a1, MAX_TET_NUM
+	syscall
+
+	move $t1, $a0 # store the random number in t1
+	addi $t1, $t1, 1
 	
 	# figure out which tet to generate based on random number
-	beq $t1, L_NUM, generate_L
+	beq $t1, J_NUM, generate_J # if t0 == 0, generate J block
+	beq $t1, L_NUM, generate_L # if t1 == 1, generate L block
+
+	# load appropiate tet address into s2 for collision detection 
+	generate_J:
+		la $s2, J0_BLOCK
+		move $a1, $s2
+		j check_spawn_collision
+
 	# load appropiate tet address into s2 for collision detection 
 	generate_L:
 		la $s2, L0_BLOCK
@@ -247,11 +285,43 @@ game_loop:
 	temp_rotate:
 		li $a0, 0x77		   # store the key pressed
 		move $a2, $s0		   # store original row index
-		move $a3, $s1		# Store original column index
-		la $t2, L0_BLOCK  # Load address of L0_BLOCK into $t1
-		la $t3, L1_BLOCK  # Load address of L1_BLOCK into $t2
-		la $t4, L2_BLOCK  # Load address of L2_BLOCK into $t3
-		la $t5, L3_BLOCK  # Load address of L3_BLOCK into $t4
+		move $a3, $s1		   # Store original column index
+
+		# FOR J BLOCK
+		la $t2, J0_BLOCK  # Load address of J0_BLOCK into $t2
+		la $t3, J1_BLOCK  # Load address of J1_BLOCK into $t3
+		la $t4, J2_BLOCK  # Load address of J2_BLOCK into $t4
+		la $t5, J3_BLOCK  # Load address of J3_BLOCK into $t5
+	
+		# check the block type
+		beq $s2, $t2, set_J1 # If $s2 == J0_BLOCK, branch to set_J1
+		beq $s2, $t3, set_J2 # If $s2 == J1_BLOCK, branch to set_J2
+		beq $s2, $t4, set_J3 # If $s2 == J2_BLOCK, branch to set_J3
+		beq $s2, $t5, set_J0 # If $s2 == J3_BLOCK, branch to set_J0
+		j L_block_check
+
+		set_J0:
+			la $a1, J0_BLOCK
+			j check_collision
+
+		set_J1:
+			la $a1, J1_BLOCK
+			j check_collision
+
+		set_J2:
+			la $a1, J2_BLOCK
+			j check_collision
+
+		set_J3:
+			la $a1, J3_BLOCK
+			j check_collision
+		
+		L_block_check:
+		# FOR L BLOCK
+		la $t2, L0_BLOCK  # Load address of L0_BLOCK into $t2
+		la $t3, L1_BLOCK  # Load address of L1_BLOCK into $t3
+		la $t4, L2_BLOCK  # Load address of L2_BLOCK into $t4
+		la $t5, L3_BLOCK  # Load address of L3_BLOCK into $t5
 	
 		# check the block type
 		beq $s2, $t2, set_L1 # If $s2 == L0_BLOCK, branch to set_L1
@@ -545,13 +615,23 @@ game_loop:
 
 				# store the colour at that unit
 				# t4 tells us the color of the block
-				# if the value is 1, store the L block colour
-				beq $t4, L_NUM, store_orange
-				
-				store_orange:
-					li $t8, L_COLOUR # store orange into t8
 
+				# if the value is 0, store the J block colour
+				beq $t4, J_NUM, store_J_color 
+				# if the value is 1, store the L block colour
+				beq $t4, L_NUM, store_L_color
+
+				store_J_color:
+					li $t8, J_COLOUR # store orange into t8
+					j store_color
+				
+				store_L_color:
+					li $t8, L_COLOUR # store orange into t8
+					j store_color
+
+				# store the colour at that unit
 				# t4 contains the value at the current block. it is a color. store it into the address of unit in display
+				store_color:
 				sw $t8, 0($t7)
 				
 				j draw_playing_field_col_loop
@@ -608,30 +688,51 @@ add_to_playing_field:
 	move $t3, $s2
 
 	# gets tet num based on tet to put into playing field
+	# FOR J BLOCK
+	# store J_BLOCK address in $t8
+	la $t8, J0_BLOCK
+	# check if we have a J block
+	beq $s2, $t8, set_J
+	# store J1_BLOCK address in $t8
+	la $t8, J1_BLOCK
+	# check if we have a J block
+	beq $s2, $t8, set_J
+	# store J2_BLOCK address in $t8
+	la $t8, J2_BLOCK
+	# check if we have a J block
+	beq $s2, $t8, set_J
+	# store J3_BLOCK address in $t8
+	la $t8, J3_BLOCK
+	# check if we have a J block
+	beq $s2, $t8, set_J
+	
+	# FOR L BLOCK 
 	# store L0_BLOCK address in $t8
 	la $t8, L0_BLOCK
 	# check if s2 == t8
 	beq $s2, $t8, set_L
-
 	# store L1_BLOCK address in $t8
 	la $t8, L1_BLOCK
 	# check if s2 == t8
 	beq $s2, $t8, set_L
-
 	# store L2_BLOCK address in $t8
 	la $t8, L2_BLOCK
 	# check if s2 == t8
 	beq $s2, $t8, set_L
-
 	# store L3_BLOCK address in $t8
 	la $t8, L3_BLOCK
 	# check if s3 == t8
 	beq $s2, $t8, set_L
 
+	set_J:
+		li $t0, J_NUM
+		j add_playing_field_row_loop
+
 	set_L:
 		li $t0, L_NUM
 		j add_playing_field_row_loop
 	
+
 	add_playing_field_row_loop:
 		# initialize col index
 		li $t2, -1
@@ -1033,13 +1134,48 @@ draw_tet:
 	# t4 = row index for row_loop/row offset
 	# t5 = col index for col_loop/ col offset
 	# t6 = color (would pop from stack later)
-	li $t6, L_COLOUR
+	# t7 = temp register for the blocks
+	
+	# if (tet == any variation of J block, t6 = J_COLOUR)
+	la $t7, J0_BLOCK
+	beq $t3, $t7, set_J_COLOR
+	
+	la $t7, J1_BLOCK
+	beq $t3, $t7, set_J_COLOR
+	
+	la $t7, J2_BLOCK
+	beq $t3, $t7, set_J_COLOR
+	
+	la $t7, J3_BLOCK
+	beq $t3, $t7, set_J_COLOR
+	
+	la $t7, L0_BLOCK
+	beq $t3, $t7, set_L_COLOR
+	
+	la $t7, L1_BLOCK
+	beq $t3, $t7, set_L_COLOR
+	
+	la $t7, L2_BLOCK
+	beq $t3, $t7, set_L_COLOR
+	
+	la $t7, L3_BLOCK
+	beq $t3, $t7, set_L_COLOR
+
 	# t7 = byte located at current block address (i.e. 0 or 1)
 	# t8 = start row + row_offset
 	# t9 = start col + col_offset
 	
-	# initialize row counter
-	li $t4, -1
+	set_J_COLOR:
+		li $t6, J_COLOUR
+		j setup_draw_tet
+
+	set_L_COLOR:
+		li $t6, L_COLOUR
+		j setup_draw_tet
+	
+	setup_draw_tet:
+		# initialize row counter
+		li $t4, -1
 
 	row_loop:
 		# initialize col counter to 0
