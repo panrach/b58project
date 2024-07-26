@@ -114,6 +114,15 @@ L3_BLOCK:
 .eqv LEFT_BORDER 0	# col index that left border ends
 .eqv RIGHT_BORDER 15	# col index that left border starts
 
+
+# after reaching a score of score cap, move on to next level
+.eqv LEVEL_1_CAP 1
+.eqv LEVEL_2_CAP 2
+
+.eqv LEVEL_1_GRAVITY 250  # how many milliseconds should pass before moving 1 block down
+.eqv LEVEL_2_GRAVITY 150 
+.eqv LEVEL_3_GRAVITY 50
+
 # what number each tet is assoicated with (used for picking random piece)
 # also used for colouring
 .eqv J_NUM 1
@@ -138,8 +147,13 @@ playing_field: .byte 0:512
     .globl main
 
 main:  	
-	# intialize score to 0
+	# intialize score to 0 abd milliseconds passed
+	li $s3, 0
 	li $s4, 0
+	
+	# initialize level to 1
+	li $s5, 1
+	li $s6, LEVEL_1_GRAVITY
 	
 	jal draw_background
 	
@@ -188,10 +202,12 @@ game_loop:
 	# s0 -- row in grid (starts from 0) where top left corner of tet is
 	# s1 -- col in grid (starts from 0) where top left corner of tet is
 	# s2 -- tet we are drawing
-	# s3 -- number of increments of .01 second that have passed; used for gravity
+	# s3 -- number of increments of .001 second that have passed; used for gravity
 		# if level_#_gravity (constant) of .01 seconds have passed then reset s3 to 0
 		# and tet move 1 down  
 	# s4 -- score (number of lines cleared)
+	# s5 -- current level
+	# s6 -- gravity constant based on level 
 	
 	# 1a. Check if key has been pressed
 		# check even 5 milliseconds/0.005 sec if its has been pressed
@@ -203,12 +219,26 @@ game_loop:
 	li $a0, 5 # Wait one second (1000 milliseconds)
 	syscall
 	
+	# increment counters for how many milliseconds have passed, s3
+	addi $s3, $s3, 1
 	
+	# if level number of milliseconds (1000 milli sec = 1 sec), apply gravity
+	#	reset s3 to 0 and move down
+	# otherwise, check for a key pressed
+	bge $s3, $s6, gravity
+	j check_keypressed
+	
+	# reset s3 to 0 and move down
+	gravity: 
+		li $s3, 0
+		b temp_drop
+	
+	
+	check_keypressed: 
 	lw $t0, ADDR_KBRD
 	lw $t1,  0($t0) # load the value from the keyboard register
 	
-	# s3 incremented
-	# if s3 is == level_3_gravity then temp_drop
+	
 	
 	bne $t1, 1, game_loop # no key has been pressed, go back 
 		
@@ -795,11 +825,32 @@ clear_row:
 			addi $t7, $t7, -1
 			# not at end of row, jump back to col loop to check next block in row
 			bne $t1, $t7, clear_row_col_loop
+			
+			# increment score
+			# at this point also check if we have reached the level cap
+			# if yes, go to next level
+			# change level saved value and level gravity saved value
 			addi $s4, $s4, 1
+			bge $s4, LEVEL_2_CAP, set_level_3
+			bge $s4, LEVEL_1_CAP, set_level_2
+			b shift_setup
+			
+			set_level_3:
+				li $s5, 3 # set level to 3
+				li $s6, LEVEL_3_GRAVITY # set gravity to level 3
+				b shift_setup
+			
+			set_level_2: 
+				li $s5, 2 # set level to 2
+				li $s6, LEVEL_2_GRAVITY # set gravity to level 2
+				b shift_setup
+			
 
 			# if (col == col_size - 1), continue. otherwise jump
 			# we have a full row that we need to clear 
 
+			shift_setup:
+			
 			# shifted_address (t5) = curaddress - col_size
 			sub $t5, $t3, GRID_COL_SIZE
 			# shift_into_address (t6) = curaddress
