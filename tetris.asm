@@ -696,6 +696,7 @@ clear_row:
 			addi $t7, $t7, -1
 			# not at end of row, jump back to col loop to check next block in row
 			bne $t1, $t7, clear_row_col_loop
+			addi $s4, $s4, 1
 
 			# if (col == col_size - 1), continue. otherwise jump
 			# we have a full row that we need to clear 
