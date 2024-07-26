@@ -132,11 +132,11 @@ have this ready for demo
 - milestone 3
 
 EASY FEATURES WE ARE GONNA DO
-1. Implement gravity, so that each second that passes will automatically move the tetromino
+X 1. Implement gravity, so that each second that passes will automatically move the tetromino
 down one row.
-2. Assuming that gravity has been implemented, have the speed of gravity increase gradually over
-time, or after the player completes a certain number of rows
-6. Add levels to the game that are triggered after the player completed a certain number of rows, where the next level is more difficult in some way than the previous one
+X 2. Assuming that gravity has been implemented, have the speed of gravity increase gradually over
+time, or after the player completes a certain number of rows 
+X 6. Add levels to the game that are triggered after the player completed a certain number of rows, where the next level is more difficult in some way than the previous one
 7. start the level with 5 random unfinished rows on the bottom of the playing field
 11. Assuming that you’ve implemented the full set of Tetrominoes, make sure that each tetromino type is a different colour.
 
@@ -225,3 +225,42 @@ Milestone 2: Implement movement and other controls
         left and right, rotate and drop).
     (b) Re-paint the screen in a loop to visualize movement.
     (c) Allow the player to quit the game.
+
+
+DISPLAYING SCORE in hexadecimal:
+
+score is a 4 byte numbers
+to get 16s digit, logical shift right 2 bytes
+to get 1s digit, logical shift left 2 bytes
+                   then logical shift right 2 bytes 
+
+if 16s-digit = 0, draw_16s_digit_0
+if 16s-digit = 1, draw_16s_digit_1
+...  
+if 16s-digit = 15, draw_16s_digit_f
+
+draw_16s_digit_0:
+
+.eqv SCORE_COLOR 0xFFFFFF 
+
+# t0 -- address to colour
+# t1 -- temp used for calculations
+# t2 -- score colour
+
+li $t2, SCORE_COLOR
+
+li $t0, ADDR_DSPL_CONST
+li $t1, 24  -- copy paste expect for this number 24
+mul $t1, $t1, 4
+add $t0, $t0, $t1
+sw $t3, $t0 #store the colour in the appropriate pixel
+
+would do this for every pixel
+
+
+
+
+if 1s-digit = 0, draw_16s_digit_0
+if 1s-digit = 1, draw_16s_digit_1
+...  
+if 1s-digit = 15, draw_16s_digit_f
