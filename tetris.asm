@@ -194,10 +194,9 @@ main:
 	# intialize score to 0 abd milliseconds passed
 	li $s3, 0
 	li $s4, 0
-	la $s7, L0_BLOCK
+	la $s7, 0
 	
 	# initialize level to 1
-	li $s5, 1
 	li $s6, LEVEL_1_GRAVITY
 	
 	jal draw_background
@@ -215,6 +214,9 @@ main:
 	li $s1, START_TET_COL # col to where tet starts off
 	move $a2, $s0 # row to where tet starts off
 	move $a3, $s1 # col to where tet starts off
+	
+	# reset swapped to 0
+	li $s5, 0
 	
 	# generate random num and store into t1
 	# not yet, will do after implementing full set
@@ -251,8 +253,9 @@ game_loop:
 		# if level_#_gravity (constant) of .01 seconds have passed then reset s3 to 0
 		# and tet move 1 down  
 	# s4 -- score (number of lines cleared)
-	# s5 -- current level
-	# s6 -- gravity constant based on level 
+	# s5 -- whether we have already swapped out held and cur yet (0 if we havent, 1 if we have)
+	#	used to determine if we have do another hold 
+	# s6 -- gravity constant based on level, use gravity to determine level
 	# s7 -- tet we are hold, 0 if  no hold
 	
 	# 1a. Check if key has been pressed
@@ -394,8 +397,15 @@ game_loop:
 	
 	hold:
 		# if held tet s7 is 0, put current in tet s2 into s7
-		beq $s7, $s0, if_nothing_held
 		# then call generate_tet
+		beq $s7, 0, if_nothing_held
+		
+		# if we have have already swaped and can't do another one yet
+		beq $s5, 1, game_loop
+		
+		# now we will swap so make swapped 1
+		li $s5, 1
+		
 		# if held tet s7 if non-zero, swap held tet (S7) and cur tet (s2)
 		move $t5, $s2
 		move $s2, $s7
@@ -931,12 +941,10 @@ clear_row:
 			b shift_setup
 			
 			set_level_3:
-				li $s5, 3 # set level to 3
 				li $s6, LEVEL_3_GRAVITY # set gravity to level 3
 				b shift_setup
 			
 			set_level_2: 
-				li $s5, 2 # set level to 2
 				li $s6, LEVEL_2_GRAVITY # set gravity to level 2
 				b shift_setup
 			
