@@ -255,11 +255,79 @@ mul $t1, $t1, 4
 add $t0, $t0, $t1
 sw $t3, $t0 # store the colour in the appropriate pixel
 
+
+
 would do this for every pixel
+
+NEW DISPLAY SCORE
+sixteens_digit_0: .word 24 25 26 40 42 56 58 72 74 88 89 90 -1
+sixteens_digit_1: .word 26 42 58 74 90 -1
+sixteens_digit_2: .word 24 25 26 42 58 57 56 72 88 89 90 -1
+sixteens_digit_3: .word 24 25 26 42 59 57 56 74 90 89 88 -1
+sixteens_digit_4: .word 24 40 56 57 58 26 42 72 90 -1
+sixteens_digit_5: .word 26 25 24 40 56 57 58 74 90 89 88 -1
+sixteens_digit_6: .word 26 25 24 40 56 72 88 89 90 74 58 57 -1
+sixteens_digit_7: .word 24 25 26 42 58 74 90 -1
+sixteens_digit_8: .word 24 25 26 40 42 56 57 58 72 74 88 89 90 -1
+sixteens_digit_9: .word 24 25 26 40 56 57 42 58 74 90 89 88 -1
+sixteens_digit_a: .word 24 25 26 40 42 56 57 58 72 74 88 90 -1
+sixteens_digit_b: .word 24 40 56 57 58 72 74 88 89 90 -1
+sixteens_digit_c: .word 24 25 26 49 56 72 88 89 90 -1
+sixteens_digit_d: .word 26 42 56 57 58 72 74 88 89 90 -1
+sixteens_digit_e: .word 24 25 26 40 56 57 58 72 88 89 90 -1
+sixteens_digit_f: .word 24 25 26 40 56 57 58 72 88 -1
+
+
+ones_digit_0: .word 28 29 30 44 46 60 62 76 78 92 93 94 -1
+ones_digit_1: .word 30 46 62 78 94
+ones_digit_2: .word 28 29 30 46 60 61 62 76 92 93 94 -1
+ones_digit_3: .word 28 29 30 46 60 61 62 78 92 93 94 -1
+ones_digit_4: .word 28 30 44 46 60 61 62 78 94 -1
+ones_digit_5: .word 28 29 30 44 60 61 62 78 92 93 94 -1
+ones_digit_6: .word 28 29 30 44 60 61 62 76 78 92 93 94 -1
+ones_digit_7: .word 28 29 30 46 62 78 94 -1
+ones_digit_8: .word 28 29 30 44 46 60 61 62 76 78 92 93 94 -1
+ones_digit_9: .word 28 29 30 44 46 60 61 62 78 92 93 94 -1
+ones_digit_a: .word 28 29 30 44 46 60 61 62 76 78 92 94 -1
+ones_digit_b: .word 28 44 60 61 62 76 78 92 93 94 -1
+ones_digit_c: .word 28 29 30 44 60 76 92 93 94 -1
+ones_digit_d: .word 30 46 60 61 62 76 78 92 93 94 -1
+ones_digit_e: .word 28 29 30 44 60 61 62 76 92 93 94 -1
+ones_digit_f: .word 28 29 30 44 60 61 62 78 92 -1
+
+level_1: .word 19 35 51 67 83 -1
+level_2: .word 17 18 19 35 51 50 49 65 81 82 83 -1
+level_3: .word 17 18 19 35 49 50 51 67 81 82 83 -1
+
+
+store that in arg to print fcn 
+la $a0, 16s_digit_0
+
+#call num print fcn
+li $t0, ADDR_DSPL_CONST # base display address
+# a0 is the digit's blocks as an array
+li $t1, a0 # address of offset to print into, increments by 4 to jump to each word
+draw_digit_loop:
+    # get grid num to print at found in arg array 
+    lw $t2, 0($t1)
+
+    # if arg number is -1, array is done so we are done printing this number
+    beq $t2, -1, (where to go after print score, prolly an exit label with jr $ra)
+
+    # otherwise, calc offset from display address
+    # i.e. grid_num (t2) * unit_size + display_address
+    mul $t2, $t2, UNIT_SIZE, $t0
+
+    # move to next word in array by incrementing T1
+    addi $t1, $t1, 4
+
+
 
 OR WE COULD store all the offset for the pixels we need for each
 as well as the number of pixels as an array
 and loop through them to colour (prolly easier in terms of copy pasting)
+
+
 
 
 

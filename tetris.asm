@@ -96,6 +96,43 @@ L3_BLOCK:
 	.byte 1 1 1 0
 	.byte 0 0 0 0
 
+sixteens_digit_0: .word 24 25 26 40 42 56 58 72 74 88 89 90 -1
+sixteens_digit_1: .word 26 42 58 74 90 -1
+sixteens_digit_2: .word 24 25 26 42 58 57 56 72 88 89 90 -1
+sixteens_digit_3: .word 24 25 26 42 59 57 56 74 90 89 88 -1
+sixteens_digit_4: .word 24 40 56 57 58 26 42 74 90 -1
+sixteens_digit_5: .word 26 25 24 40 56 57 58 74 90 89 88 -1
+sixteens_digit_6: .word 26 25 24 40 56 72 88 89 90 74 58 57 -1
+sixteens_digit_7: .word 24 25 26 42 58 74 90 -1
+sixteens_digit_8: .word 24 25 26 40 42 56 57 58 72 74 88 89 90 -1
+sixteens_digit_9: .word 24 25 26 40 56 57 42 58 74 90 89 88 -1
+sixteens_digit_a: .word 24 25 26 40 42 56 57 58 72 74 88 90 -1
+sixteens_digit_b: .word 24 40 56 57 58 72 74 88 89 90 -1
+sixteens_digit_c: .word 24 25 26 49 56 72 88 89 90 -1
+sixteens_digit_d: .word 26 42 56 57 58 72 74 88 89 90 -1
+sixteens_digit_e: .word 24 25 26 40 56 57 58 72 88 89 90 -1
+sixteens_digit_f: .word 24 25 26 40 56 57 58 72 88 -1
+
+
+ones_digit_0: .word 28 29 30 44 46 60 62 76 78 92 93 94 -1
+ones_digit_1: .word 30 46 62 78 94
+ones_digit_2: .word 28 29 30 46 60 61 62 76 92 93 94 -1
+ones_digit_3: .word 28 29 30 46 60 61 62 78 92 93 94 -1
+ones_digit_4: .word 28 30 44 46 60 61 62 78 94 -1
+ones_digit_5: .word 28 29 30 44 60 61 62 78 92 93 94 -1
+ones_digit_6: .word 28 29 30 44 60 61 62 76 78 92 93 94 -1
+ones_digit_7: .word 28 29 30 46 62 78 94 -1
+ones_digit_8: .word 28 29 30 44 46 60 61 62 76 78 92 93 94 -1
+ones_digit_9: .word 28 29 30 44 46 60 61 62 78 92 93 94 -1
+ones_digit_a: .word 28 29 30 44 46 60 61 62 76 78 92 94 -1
+ones_digit_b: .word 28 44 60 61 62 76 78 92 93 94 -1
+ones_digit_c: .word 28 29 30 44 60 76 92 93 94 -1
+ones_digit_d: .word 30 46 60 61 62 76 78 92 93 94 -1
+ones_digit_e: .word 28 29 30 44 60 61 62 76 92 93 94 -1
+ones_digit_f: .word 28 29 30 44 60 61 62 78 92 -1
+
+
+
 .eqv MAX_TET_NUM 3
 .eqv ADDR_DSPL_CONST 0x10008000
 .eqv UNIT_SIZE 4	# Size of each unit in bytes
@@ -524,8 +561,60 @@ game_loop:
 		sw $s1, 0($sp)
 	
 		jal draw_tet
+		
+
+		jal draw_playing_field
+		
+		
+		# figure out what numbers to draw 
+		
+		
+		# set up arg for draw score
+		
+		# draw level
+		
+		# draw 16s digit, just picked on but later you would do based on acc score
+		la $a0, sixteens_digit_4
+		jal draw_digit
+		
+		# draw 1s digit
+		la $a0, ones_digit_a
+		jal draw_digit
 	
-		# here we also need to draw playing field
+	#5. Go back to 1
+	b game_loop	
+
+
+EXIT: 
+	# Exit the program
+    	li $v0, 10
+    	syscall
+
+		# when vertical collision happens we need:
+		#	1. the current tet in the original position (use s registers for positon) to be 
+		#	   added to the playing field
+		#	2. a new tet to be generated (j generate_new_tet)
+		# 	3. playing field drawing will happen when we call draw later, not here 
+		
+		# pseudocode for 1. add_to_playing_field
+		# takes in tet (s2), row (s0), col (s1) 
+		# gets tet num based on tet to put into playing field 
+		# loop through each block in tet, same as row_offset col_offset loop in check collision
+		# access value in current block 
+		#	(how? move $t1, $s2, increment t1 in every loop, load byte from t1 to see value)
+		#	if 0, move on to next block
+		# 	if 1, continue 
+		# calc cur block row = row (s0) + row_offset, cur block col = col (s0) + col_offset
+		# using block_row and block_col, calulate corresponding address in playing_field
+		# 	base + ((row index * number of columns) + column index) * 1
+		# 	see line 354 for example
+		# set value at that playing field address to the tet num (the value is 1 byte, not a 4 byte word, use sb)
+		# done 
+							
+		# otherwise, if no collision
+		# update the rows, columns, etc. according to movement 
+		
+# here we also need to draw playing field
 		# make this a func prolly that doesnt need args, it use uses the save value for tet (kinda like global var)
 		# and the playing field and the display address
 		# inside draw_playing field is where we get rid of lines and increment the score (s4)
@@ -547,8 +636,7 @@ game_loop:
 		#		use those in display_base + ((row index * number of columns) + column index) * unit_size
 		# 	store colour at that unit ( the address u just calculated)
 		# use the constants I create at the top for all these things
-
-		draw_playing_field:
+draw_playing_field:
 		
 		# loop through playing field row by row
 		# t0 = current block address in display
@@ -572,7 +660,7 @@ game_loop:
 			addi $t1, $t1, 1
 
 			# if row >= GRID_ROW_SIZE, exit
-			bge $t1, GRID_ROW_SIZE, game_loop
+			bge $t1, GRID_ROW_SIZE, exit_draw_playing_field
 
 			# increment column counter
 			draw_playing_field_col_loop:
@@ -612,7 +700,8 @@ game_loop:
 				# base + ((row index * number of columns) + column index) * unit size
 				mul $t7, $t5, COL_SIZE # row index * number of columns
 				add $t7, $t7, $t6 # (row index * number of columns) + column index
-				mul $t7, $t7, UNIT_SIZE # (row index * number of columns + column index) * unit size
+				sll $t7, $t7, 2
+				#mul $t7, $t7, UNIT_SIZE # (row index * number of columns + column index) * unit size
 				addi $t7, $t7, ADDR_DSPL_CONST # add offset to base
 
 				# store the colour at that unit
@@ -637,40 +726,10 @@ game_loop:
 				sw $t8, 0($t7)
 				
 				j draw_playing_field_col_loop
-	
-	#5. Go back to 1
-	b game_loop	
+exit_draw_playing_field:
+	jr $ra
 
 
-EXIT: 
-	# Exit the program
-    	li $v0, 10
-    	syscall
-
-		# when vertical collision happens we need:
-		#	1. the current tet in the original position (use s registers for positon) to be 
-		#	   added to the playing field
-		#	2. a new tet to be generated (j generate_new_tet)
-		# 	3. playing field drawing will happen when we call draw later, not here 
-		
-		# pseudocode for 1. add_to_playing_field
-		# takes in tet (s2), row (s0), col (s1) 
-		# gets tet num based on tet to put into playing field 
-		# loop through each block in tet, same as row_offset col_offset loop in check collision
-		# access value in current block 
-		#	(how? move $t1, $s2, increment t1 in every loop, load byte from t1 to see value)
-		#	if 0, move on to next block
-		# 	if 1, continue 
-		# calc cur block row = row (s0) + row_offset, cur block col = col (s0) + col_offset
-		# using block_row and block_col, calulate corresponding address in playing_field
-		# 	base + ((row index * number of columns) + column index) * 1
-		# 	see line 354 for example
-		# set value at that playing field address to the tet num (the value is 1 byte, not a 4 byte word, use sb)
-		# done 
-							
-		# otherwise, if no collision
-		# update the rows, columns, etc. according to movement 
-		
 add_to_playing_field:
 	# takes in tet (s2), row (s0), col (s1) 
 	# t0 = the tet num
@@ -956,14 +1015,15 @@ draw_background:
 		li $t4, COL_SIZE                # t4 = display height in units
 	
 		# calculate the address of the current unit in t7
-		li $t8, UNIT_SIZE			# t8 = unit size (4 bytes)
+		#li $t8, UNIT_SIZE			# t8 = unit size (4 bytes)
 		# base + ((row index * number of columns) + column index) * unit size 
     		# row index * number of columns
     		mul $t7, $t5, $t4
     		# (row index * num columns) + column index
     		add $t7, $t7, $t6
-    		# t7 * pixel size
-    		mul $t7, $t7, $t8
+    		# t7 * unit size
+    		sll $t7, $t7, 2
+    		#mul $t7, $t7, UNIT_SIZE
     		# add offset to base
     		add $t7, $t7, $t0
     	
@@ -1201,7 +1261,8 @@ draw_tet:
 			# calculating offset
 			mul $t0, $t8, COL_SIZE
 			add $t0, $t0, $t9
-			mul $t0, $t0, UNIT_SIZE
+			sll $t0, $t0, 2
+			#mul $t0, $t0, UNIT_SIZE
 			# add to base display address
 			addi $t0, $t0, ADDR_DSPL_CONST 
 			
@@ -1223,3 +1284,36 @@ draw_tet:
 			
 	exit_draw_tet:
 		jr $ra
+		
+draw_digit:
+# a0 -- array of grid num to colour
+# t0 -- score colour
+# t1 -- address to check cur grid num
+# t2 -- address in display to colour
+
+li $t0, SCORE_COLOUR
+# a0 is the digit's blocks as an array
+move $t1, $a0 # address of offset to print into, increments by 4 to jump to each word
+
+draw_digit_loop:
+    # get grid num to print at found in arg array 
+    lw $t2, 0($t1)
+
+    # if arg number is -1, array is done so we are done printing this number
+    beq $t2, -1, exit_draw_digit
+
+    # otherwise, calc offset from display address
+    # i.e. grid_num (t2) * 4 + display_address
+    sll $t2, $t2, 2
+    addi $t2, $t2, ADDR_DSPL_CONST
+    
+    # colour it in the display
+    sw $t0, 0($t2)
+
+    # move to next word in array by incrementing t1 by 4 
+    addi $t1, $t1, 4
+    
+    j draw_digit_loop
+
+exit_draw_digit:
+	jr $ra
