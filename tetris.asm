@@ -153,6 +153,10 @@ ones_digit_f: .word 28 29 30 44 60 61 62 78 92 -1
 .eqv RIGHT_BORDER 15	# col index that left border starts
 
 
+LEVEL_1_DISPLAY: .word  86 -1
+LEVEL_2_DISPLAY: .word  54 86 -1
+LEVEL_3_DISPLAY: .word  22 54 86 -1
+
 # after reaching a score of score cap, move on to next level
 .eqv LEVEL_1_CAP 1
 .eqv LEVEL_2_CAP 2
@@ -610,6 +614,8 @@ game_loop:
 		# set up arg for draw score
 		
 		# draw level
+		la $a0, LEVEL_3_DISPLAY
+		jal draw_digit
 		
 		# draw 16s digit, just picked on but later you would do based on acc score
 		la $a0, sixteens_digit_4
