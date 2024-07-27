@@ -156,9 +156,9 @@ ones_digit_f: .word 28 29 30 44 60 61 62 78 92 -1
 .eqv LEVEL_1_CAP 1
 .eqv LEVEL_2_CAP 2
 
-.eqv LEVEL_1_GRAVITY 250  # how many milliseconds should pass before moving 1 block down
-.eqv LEVEL_2_GRAVITY 100 
-.eqv LEVEL_3_GRAVITY 50
+.eqv LEVEL_1_GRAVITY 800  # how many milliseconds should pass before moving 1 block down
+.eqv LEVEL_2_GRAVITY 500 
+.eqv LEVEL_3_GRAVITY 300
 
 # what number each tet is assoicated with (used for picking random piece)
 # also used for colouring
@@ -256,7 +256,7 @@ game_loop:
 	
 	# Sleep
 	li $v0, 32
-	li $a0, 5 # Wait one second (1000 milliseconds)
+	li $a0, 1 # Wait one second (1000 milliseconds)
 	syscall
 	
 	# increment counters for how many milliseconds have passed, s3
