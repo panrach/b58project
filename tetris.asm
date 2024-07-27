@@ -137,9 +137,9 @@ ones_digit_f: .word 28 29 30 44 60 61 62 78 92 -1
 .eqv ADDR_DSPL_CONST 0x10008000
 .eqv UNIT_SIZE 4	# Size of each unit in bytes
 
-.eqv GRID_DARK 0xA9A9A9	# dark colour in grid
-.eqv GRID_LIGHT 0x808080 	# light colour in grid 
-.eqv BORDER_BLACK 0x000000	# black for border
+.eqv GRID_DARK 0x0	# dark colour in grid
+.eqv GRID_LIGHT 0x101010 	# light colour in grid 
+.eqv BORDER_BLACK 0x444444	# black for border
 
 .eqv ROW_SIZE 32	# number of rows (256/8)
 .eqv COL_SIZE 16	# number of col (128/8)
@@ -157,7 +157,7 @@ ones_digit_f: .word 28 29 30 44 60 61 62 78 92 -1
 .eqv LEVEL_2_CAP 2
 
 .eqv LEVEL_1_GRAVITY 250  # how many milliseconds should pass before moving 1 block down
-.eqv LEVEL_2_GRAVITY 150 
+.eqv LEVEL_2_GRAVITY 100 
 .eqv LEVEL_3_GRAVITY 50
 
 # what number each tet is assoicated with (used for picking random piece)
@@ -166,9 +166,9 @@ ones_digit_f: .word 28 29 30 44 60 61 62 78 92 -1
 .eqv L_NUM 2
 # colours for blocks
 .eqv L_COLOUR 0xe69138
-.eqv J_COLOUR 0xffd1f5 
+.eqv J_COLOUR 0xE04DCC
 
-.eqv SCORE_COLOUR 0xFFFFFF 
+.eqv SCORE_COLOUR 0xAAAAAA
 
 ##############################################################################
 # Mutable Data
@@ -178,6 +178,7 @@ ones_digit_f: .word 28 29 30 44 60 61 62 78 92 -1
 # 0 if unoccupied
 # number reping colour is occupied
 playing_field: .byte 0:512
+frame_buffer: .word 0:512
 
 ##############################################################################
 # Code
@@ -580,6 +581,8 @@ game_loop:
 		# draw 1s digit
 		la $a0, ones_digit_a
 		jal draw_digit
+		
+		jal copy_frame_buffer_to_display
 	
 	#5. Go back to 1
 	b game_loop	
@@ -702,7 +705,8 @@ draw_playing_field:
 				add $t7, $t7, $t6 # (row index * number of columns) + column index
 				sll $t7, $t7, 2
 				#mul $t7, $t7, UNIT_SIZE # (row index * number of columns + column index) * unit size
-				addi $t7, $t7, ADDR_DSPL_CONST # add offset to base
+				la $t9, frame_buffer
+				add $t7, $t7, $t9 # add offset to base
 
 				# store the colour at that unit
 				# t4 tells us the color of the block
@@ -1010,7 +1014,7 @@ draw_background:
 
 	bg_loop:
 		# initalize values for calculating address of current unit
-		lw $t0, ADDR_DSPL               # t0 = base display address
+		la $t0, frame_buffer              # t0 = base display address
 		li $t3, ROW_SIZE                # t3 = display width in units
 		li $t4, COL_SIZE                # t4 = display height in units
 	
@@ -1167,7 +1171,7 @@ check_spawn_collision:
     
             
 draw_tet:
-	lw $t0, ADDR_DSPL
+	la $t0, frame_buffer
 	
 	# pop column index in grid, put it in t1
 	# add left_border + 1 to it so it is cur column on entire display
@@ -1264,7 +1268,8 @@ draw_tet:
 			sll $t0, $t0, 2
 			#mul $t0, $t0, UNIT_SIZE
 			# add to base display address
-			addi $t0, $t0, ADDR_DSPL_CONST 
+			la $t8, frame_buffer
+			add $t0, $t0, $t8
 			
 			# accessing current block in block_array/tet
 			lb $t7, 0($t3)
@@ -1305,7 +1310,8 @@ draw_digit_loop:
     # otherwise, calc offset from display address
     # i.e. grid_num (t2) * 4 + display_address
     sll $t2, $t2, 2
-    addi $t2, $t2, ADDR_DSPL_CONST
+    la $t3, frame_buffer
+    add $t2, $t2, $t3
     
     # colour it in the display
     sw $t0, 0($t2)
@@ -1317,3 +1323,22 @@ draw_digit_loop:
 
 exit_draw_digit:
 	jr $ra
+
+copy_frame_buffer_to_display:
+    la $t0, frame_buffer
+    lw $t1, ADDR_DSPL
+    li $t2, 0
+    li $t3, 512  # size of frame buffer, used to check if finished copying
+
+copy_loop:
+    bge $t2, $t3, end_copy
+    # copy word from frame buffer to display
+    lw $t4, 0($t0)
+    sw $t4, 0($t1)
+    addi $t0, $t0, 4
+    addi $t1, $t1, 4
+    addi $t2, $t2, 1
+    j copy_loop
+
+end_copy:
+    jr $ra
