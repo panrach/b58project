@@ -161,9 +161,9 @@ LEVEL_3_DISPLAY: .word  22 54 86 -1
 .eqv LEVEL_1_CAP 1
 .eqv LEVEL_2_CAP 2
 
-.eqv LEVEL_1_GRAVITY 800  # how many milliseconds should pass before moving 1 block down
+.eqv LEVEL_1_GRAVITY 750  # how many milliseconds should pass before moving 1 block down
 .eqv LEVEL_2_GRAVITY 500 
-.eqv LEVEL_3_GRAVITY 300
+.eqv LEVEL_3_GRAVITY 250
 
 # what number each tet is assoicated with (used for picking random piece)
 # also used for colouring
@@ -608,15 +608,27 @@ game_loop:
 		jal draw_playing_field
 		
 		
-		# figure out what numbers to draw 
+		# figure out what level to draw based on gravity value and draw level
+		
+		beq $s6, LEVEL_1_GRAVITY, setup_level_1
+		beq $s6, LEVEL_2_GRAVITY, setup_level_2
+		beq $s6, LEVEL_3_GRAVITY, setup_level_3
+		
+		setup_level_1:
+			la $a0, LEVEL_1_DISPLAY
+			j draw_level
+		setup_level_2:
+			la $a0, LEVEL_2_DISPLAY
+			j draw_level
+		setup_level_3:
+			la $a0, LEVEL_3_DISPLAY
+			j draw_level
+			
+		draw_level:
+			jal draw_digit
 		
 		
 		# set up arg for draw score
-		
-		# draw level
-		la $a0, LEVEL_3_DISPLAY
-		jal draw_digit
-		
 		# draw 16s digit, just picked on but later you would do based on acc score
 		la $a0, sixteens_digit_4
 		jal draw_digit
