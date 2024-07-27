@@ -132,6 +132,7 @@ ones_digit_e: .word 28 29 30 44 60 61 62 76 92 93 94 -1
 ones_digit_f: .word 28 29 30 44 60 61 62 78 92 -1
 
 
+.eqv HOLD_BUTTON 0x63
 
 .eqv MAX_TET_NUM 3
 .eqv ADDR_DSPL_CONST 0x10008000
@@ -170,6 +171,9 @@ ones_digit_f: .word 28 29 30 44 60 61 62 78 92 -1
 
 .eqv SCORE_COLOUR 0xAAAAAA
 
+.eqv START_TET_ROW 0
+.eqv START_TET_COL 5
+
 ##############################################################################
 # Mutable Data
 ##############################################################################
@@ -190,6 +194,7 @@ main:
 	# intialize score to 0 abd milliseconds passed
 	li $s3, 0
 	li $s4, 0
+	la $s7, L0_BLOCK
 	
 	# initialize level to 1
 	li $s5, 1
@@ -206,8 +211,8 @@ main:
 	
 	# set up starting row and col
 	# s registers for draw, a registers for collision detection
-	li $s0, 0 # row to where tet starts off
-	li $s1, 5 # col to where tet starts off
+	li $s0, START_TET_ROW # row to where tet starts off
+	li $s1, START_TET_COL # col to where tet starts off
 	move $a2, $s0 # row to where tet starts off
 	move $a3, $s1 # col to where tet starts off
 	
@@ -248,6 +253,7 @@ game_loop:
 	# s4 -- score (number of lines cleared)
 	# s5 -- current level
 	# s6 -- gravity constant based on level 
+	# s7 -- tet we are hold, 0 if  no hold
 	
 	# 1a. Check if key has been pressed
 		# check even 5 milliseconds/0.005 sec if its has been pressed
@@ -303,6 +309,7 @@ game_loop:
 		beq $t2, 0x77, temp_rotate  # w is pressed
 		beq $t2, 0x73, temp_drop  # s is pressed
 		beq $t2, 0x71, EXIT  # q is pressed, quit
+		beq $t2, HOLD_BUTTON, hold
 		
 		j game_loop # invalid key
 		
@@ -384,6 +391,26 @@ game_loop:
 		set_L3:
 			la $a1, L3_BLOCK
 			j check_collision
+	
+	hold:
+		# if held tet s7 is 0, put current in tet s2 into s7
+		beq $s7, $s0, if_nothing_held
+		# then call generate_tet
+		# if held tet s7 if non-zero, swap held tet (S7) and cur tet (s2)
+		move $t5, $s2
+		move $s2, $s7
+		move $s7, $t5
+		
+		# set up arge for check_collision
+		li $a0, HOLD_BUTTON
+		move $a1, $s2 
+		li $a2, START_TET_ROW 
+		li $s3, START_TET_COL
+		j check_collision
+		
+		if_nothing_held:
+			move $s7, $s2
+			j generate_new_tet
 
 	temp_drop:
 		li $a0, 0x73		   # store the key pressed
@@ -581,6 +608,9 @@ game_loop:
 		# draw 1s digit
 		la $a0, ones_digit_a
 		jal draw_digit
+		
+		# draw held tet
+		jal draw_held_tet
 		
 		jal copy_frame_buffer_to_display
 	
@@ -1323,6 +1353,32 @@ draw_digit_loop:
 
 exit_draw_digit:
 	jr $ra
+
+draw_held_tet:
+	# held text is empty, i.e. 0
+	beq $s7, 0, exit_draw_held_tet
+	
+	# call draw tet but place in hold area
+	# set up to call draw_tet
+	# move up a word to give space for the tet address
+	addi $sp, $sp, -4
+	sw $s7, 0($sp)
+	
+	# make room for row
+	addi $sp, $sp, -4
+	li $t0, -6
+	sw $t0, 0($sp)
+	
+	# make room for column
+	addi $sp, $sp, -4
+	li $t1, 0
+	sw $t1, 0($sp)
+	
+	j draw_tet # no jal bc i dont want ra to be updated
+	
+exit_draw_held_tet:
+	jr $ra
+
 
 copy_frame_buffer_to_display:
     la $t0, frame_buffer
