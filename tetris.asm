@@ -95,8 +95,103 @@ L3_BLOCK:
 	.byte 0 0 1 0
 	.byte 1 1 1 0
 	.byte 0 0 0 0
+	
+# S block and all its rotations
+S0_BLOCK: 
+	.byte 0 1 1 0
+	.byte 1 1 0 0
+	.byte 0 0 0 0
+	.byte 0 0 0 0
+S1_BLOCK: 
+	.byte 0 1 0 0
+	.byte 0 1 1 0
+	.byte 0 0 1 0
+	.byte 0 0 0 0
+S2_BLOCK: 
+	.byte 0 0 0 0
+	.byte 0 1 1 0
+	.byte 1 1 0 0
+	.byte 0 0 0 0
+S3_BLOCK: 
+	.byte 1 0 0 0
+	.byte 1 1 0 0
+	.byte 0 1 0 0
+	.byte 0 0 0 0
+	
+# I block and all its rotations
+I0_BLOCK: 
+	.byte 0 0 0 0
+	.byte 1 1 1 1
+	.byte 0 0 0 0
+	.byte 0 0 0 0
+I1_BLOCK: 
+	.byte 0 0 1 0
+	.byte 0 0 1 0
+	.byte 0 0 1 0
+	.byte 0 0 1 0
+I2_BLOCK: 
+	.byte 0 0 0 0
+	.byte 0 0 0 0
+	.byte 1 1 1 1
+	.byte 0 0 0 0
+I3_BLOCK: 
+	.byte 0 1 0 0
+	.byte 0 1 0 0
+	.byte 0 1 0 0
+	.byte 0 1 0 0
 
-.eqv MAX_TET_NUM 3
+# Z block and all its rotations
+Z0_BLOCK: 
+	.byte 1 1 0 0
+	.byte 0 1 1 0
+	.byte 0 0 0 0
+	.byte 0 0 0 0
+Z1_BLOCK:
+	.byte 0 0 1 0
+	.byte 0 1 1 0
+	.byte 0 1 0 0
+	.byte 0 0 0 0
+Z2_BLOCK:
+	.byte 0 0 0 0
+	.byte 1 1 0 0
+	.byte 0 1 1 0
+	.byte 0 0 0 0
+Z3_BLOCK:
+	.byte 0 1 0 0
+	.byte 0 1 1 0
+	.byte 0 0 1 0
+	.byte 0 0 0 0
+	
+# O block and all its rotations
+O0_BLOCK: 
+	.byte 0 0 0 0
+	.byte 0 1 1 0
+	.byte 0 1 1 0
+	.byte 0 0 0 0
+	
+# T block and all its rotations
+T0_BLOCK: 
+	.byte 0 0 0 0
+	.byte 1 1 1 0
+	.byte 0 1 0 0
+	.byte 0 0 0 0
+T1_BLOCK:
+	.byte 0 1 0 0
+	.byte 1 1 0 0
+	.byte 0 1 0 0
+	.byte 0 0 0 0
+T2_BLOCK:
+	.byte 0 0 0 0
+	.byte 0 1 0 0
+	.byte 1 1 1 0
+	.byte 0 0 0 0
+T3_BLOCK:
+	.byte 0 1 0 0
+	.byte 0 1 1 0
+	.byte 0 1 0 0
+	.byte 0 0 0 0
+
+.eqv MAX_TET_NUM 7
 .eqv ADDR_DSPL_CONST 0x10008000
 .eqv UNIT_SIZE 4	# Size of each unit in bytes
 
@@ -114,7 +209,6 @@ L3_BLOCK:
 .eqv LEFT_BORDER 0	# col index that left border ends
 .eqv RIGHT_BORDER 15	# col index that left border starts
 
-
 # after reaching a score of score cap, move on to next level
 .eqv LEVEL_1_CAP 1
 .eqv LEVEL_2_CAP 2
@@ -127,9 +221,20 @@ L3_BLOCK:
 # also used for colouring
 .eqv J_NUM 1
 .eqv L_NUM 2
+.eqv S_NUM 3
+.eqv I_NUM 4
+.eqv Z_NUM 5
+.eqv O_NUM 6
+.eqv T_NUM 7
+
 # colours for blocks
 .eqv L_COLOUR 0xe69138
-.eqv J_COLOUR 0xffd1f5 
+.eqv J_COLOUR 0xff70e7
+.eqv S_COLOUR 0xfe481c
+.eqv I_COLOUR 0x84e7ee
+.eqv Z_COLOUR 0x0db23a
+.eqv O_COLOUR 0xfffa5c
+.eqv T_COLOUR 0x9400ab
 
 ##############################################################################
 # Mutable Data
@@ -163,7 +268,6 @@ main:
 	# use generated tet number to figure out block
 	
 	generate_new_tet:
-	
 	# set up starting row and col
 	# s registers for draw, a registers for collision detection
 	li $s0, 0 # row to where tet starts off
@@ -179,11 +283,16 @@ main:
 	syscall
 
 	move $t1, $a0 # store the random number in t1
-	addi $t1, $t1, 1
+	addi $t1, $t1, 1 # add 1 to include the upper bound
 	
 	# figure out which tet to generate based on random number
-	beq $t1, J_NUM, generate_J # if t0 == 0, generate J block
-	beq $t1, L_NUM, generate_L # if t1 == 1, generate L block
+	beq $t1, J_NUM, generate_J # if t0 == 1, generate J block
+	beq $t1, L_NUM, generate_L # if t1 == 2, generate L block
+	beq $t1, S_NUM, generate_S # if t1 == 3, generate S block
+	beq $t1, I_NUM, generate_I # if t1 == 4, generate I block
+	beq $t1, Z_NUM, generate_Z # if t1 == 5, generate Z block
+	beq $t1, O_NUM, generate_O # if t1 == 6, generate O block
+	beq $t1, T_NUM, generate_T # if t1 == 7, generate T block
 
 	# load appropiate tet address into s2 for collision detection 
 	generate_J:
@@ -196,7 +305,36 @@ main:
 		la $s2, L0_BLOCK
 		move $a1, $s2
 		j check_spawn_collision
+		
+	# load appropiate tet address into s2 for collision detection 
+	generate_S:
+		la $s2, S0_BLOCK
+		move $a1, $s2
+		j check_spawn_collision	
+		
+	# load appropiate tet address into s2 for collision detection 
+	generate_I:
+		la $s2, I0_BLOCK
+		move $a1, $s2
+		j check_spawn_collision
 
+	# load appropiate tet address into s2 for collision detection 
+	generate_Z:
+		la $s2, Z0_BLOCK
+		move $a1, $s2
+		j check_spawn_collision
+
+	# load appropiate tet address into s2 for collision detection 
+	generate_O:
+		la $s2, O0_BLOCK
+		move $a1, $s2
+		j check_spawn_collision
+
+	# load appropiate tet address into s2 for collision detection 
+	generate_T:
+		la $s2, T0_BLOCK
+		move $a1, $s2
+		j check_spawn_collision
 	
 game_loop:
 	# s0 -- row in grid (starts from 0) where top left corner of tet is
@@ -232,13 +370,10 @@ game_loop:
 	gravity: 
 		li $s3, 0
 		b temp_drop
-	
-	
+
 	check_keypressed: 
 	lw $t0, ADDR_KBRD
 	lw $t1,  0($t0) # load the value from the keyboard register
-	
-	
 	
 	bne $t1, 1, game_loop # no key has been pressed, go back 
 		
@@ -327,7 +462,8 @@ game_loop:
 		beq $s2, $t2, set_L1 # If $s2 == L0_BLOCK, branch to set_L1
 		beq $s2, $t3, set_L2 # If $s2 == L1_BLOCK, branch to set_L2
 		beq $s2, $t4, set_L3 # If $s2 == L2_BLOCK, branch to set_L3
-		beq $s2, $t5, set_L0 # If $s2 == L3_BLOCK, branch to set_L1
+		beq $s2, $t5, set_L0 # If $s2 == L3_BLOCK, branch to set_L0
+		j S_block_check
 
 		set_L0:
 			la $a1, L0_BLOCK
@@ -343,6 +479,134 @@ game_loop:
 
 		set_L3:
 			la $a1, L3_BLOCK
+			j check_collision
+			
+		S_block_check:
+		# FOR S BLOCK
+		la $t2, S0_BLOCK  # Load address of S0_BLOCK into $t2
+		la $t3, S1_BLOCK  # Load address of S1_BLOCK into $t3
+		la $t4, S2_BLOCK  # Load address of S2_BLOCK into $t4
+		la $t5, S3_BLOCK  # Load address of S3_BLOCK into $t5
+	
+		# check the block type
+		beq $s2, $t2, set_S1 # If $s2 == S0_BLOCK, branch to set_S1
+		beq $s2, $t3, set_S2 # If $s2 == S1_BLOCK, branch to set_S2
+		beq $s2, $t4, set_S3 # If $s2 == S2_BLOCK, branch to set_S3
+		beq $s2, $t5, set_S0 # If $s2 == S3_BLOCK, branch to set_S0
+		j I_block_check
+
+		set_S0:
+			la $a1, S0_BLOCK
+			j check_collision
+
+		set_S1:
+			la $a1, S1_BLOCK
+			j check_collision
+
+		set_S2:
+			la $a1, S2_BLOCK
+			j check_collision
+
+		set_S3:
+			la $a1, S3_BLOCK
+			j check_collision
+
+		I_block_check:
+		# FOR I BLOCK
+		la $t2, I0_BLOCK  # Load address of I0_BLOCK into $t2
+		la $t3, I1_BLOCK  # Load address of I1_BLOCK into $t3
+		la $t4, I2_BLOCK  # Load address of I2_BLOCK into $t4
+		la $t5, I3_BLOCK  # Load address of I3_BLOCK into $t5
+	
+		# check the block type
+		beq $s2, $t2, set_I1 # If $s2 == I0_BLOCK, branch to set_I1
+		beq $s2, $t3, set_I2 # If $s2 == I1_BLOCK, branch to set_I2
+		beq $s2, $t4, set_I3 # If $s2 == I2_BLOCK, branch to set_I3
+		beq $s2, $t5, set_I0 # If $s2 == I3_BLOCK, branch to set_I0
+		j Z_block_check
+
+		set_I0:
+			la $a1, I0_BLOCK
+			j check_collision
+
+		set_I1:
+			la $a1, I1_BLOCK
+			j check_collision
+
+		set_I2:
+			la $a1, I2_BLOCK
+			j check_collision
+
+		set_I3:
+			la $a1, I3_BLOCK
+			j check_collision
+
+		Z_block_check:
+		# FOR Z BLOCK
+		la $t2, Z0_BLOCK  # Load address of Z0_BLOCK into $t2
+		la $t3, Z1_BLOCK  # Load address of Z1_BLOCK into $t3
+		la $t4, Z2_BLOCK  # Load address of Z2_BLOCK into $t4
+		la $t5, Z3_BLOCK  # Load address of Z3_BLOCK into $t5
+	
+		# check the block type
+		beq $s2, $t2, set_Z1 # If $s2 == Z0_BLOCK, branch to set_Z1
+		beq $s2, $t3, set_Z2 # If $s2 == Z1_BLOCK, branch to set_Z2
+		beq $s2, $t4, set_Z3 # If $s2 == Z2_BLOCK, branch to set_Z3
+		beq $s2, $t5, set_Z0 # If $s2 == Z3_BLOCK, branch to set_Z0
+		j O_block_check
+
+		set_Z0:
+			la $a1, Z0_BLOCK
+			j check_collision
+
+		set_Z1:
+			la $a1, Z1_BLOCK
+			j check_collision
+
+		set_Z2:
+			la $a1, Z2_BLOCK
+			j check_collision
+
+		set_Z3:
+			la $a1, Z3_BLOCK
+			j check_collision
+			
+		O_block_check:
+		# FOR O BLOCK
+		# check the block type
+		beq $s2, $t2, set_O0 # If $s2 == O0_BLOCK, branch to set_O0
+		j T_block_check
+		set_O0:
+			la $a1, O0_BLOCK
+			j check_collision
+			
+		T_block_check:
+		# FOR T BLOCK
+		la $t2, T0_BLOCK  # Load address of T0_BLOCK into $t2
+		la $t3, T1_BLOCK  # Load address of T1_BLOCK into $t3
+		la $t4, T2_BLOCK  # Load address of T2_BLOCK into $t4
+		la $t5, T3_BLOCK  # Load address of T3_BLOCK into $t5
+	
+		# check the block type
+		beq $s2, $t2, set_T1 # If $s2 == T0_BLOCK, branch to set_T1
+		beq $s2, $t3, set_T2 # If $s2 == T1_BLOCK, branch to set_T2
+		beq $s2, $t4, set_T3 # If $s2 == T2_BLOCK, branch to set_T3
+		beq $s2, $t5, set_T0 # If $s2 == I3_BLOCK, branch to set_T0
+
+		set_T0:
+			la $a1, T0_BLOCK
+			j check_collision
+
+		set_T1:
+			la $a1, T1_BLOCK
+			j check_collision
+
+		set_T2:
+			la $a1, T2_BLOCK
+			j check_collision
+
+		set_T3:
+			la $a1, T3_BLOCK
 			j check_collision
 
 	temp_drop:
@@ -620,15 +884,45 @@ game_loop:
 				beq $t4, J_NUM, store_J_color 
 				# if the value is 1, store the L block colour
 				beq $t4, L_NUM, store_L_color
+				# if the value is 2, store S_block colour
+				beq $t4, S_NUM, store_S_color
+				# if the value is 3, store I_block colour
+				beq $t4, I_NUM, store_I_color
+				# if the value is 4, store Z_block colour
+				beq $t4, Z_NUM, store_Z_color
+				# if the value is 5, store O_block colour
+				beq $t4, O_NUM, store_O_color
+				# if the value is 6, store T_block colour
+				beq $t4, T_NUM, store_T_color
 
 				store_J_color:
-					li $t8, J_COLOUR # store orange into t8
+					li $t8, J_COLOUR # store colour into t8
 					j store_color
 				
 				store_L_color:
-					li $t8, L_COLOUR # store orange into t8
+					li $t8, L_COLOUR # store colour into t8
+					j store_color
+					
+				store_S_color:
+					li $t8, S_COLOUR # store colour into t8
+					j store_color
+					
+				store_I_color:
+					li $t8, I_COLOUR # store colour into t8
 					j store_color
 
+				store_Z_color:
+					li $t8, Z_COLOUR # store colour into t8
+					j store_color
+					
+				store_O_color:
+					li $t8, O_COLOUR # store colour into t8
+					j store_color
+
+				store_T_color:
+					li $t8, T_COLOUR # store colour into t8
+					j store_color
+					
 				# store the colour at that unit
 				# t4 contains the value at the current block. it is a color. store it into the address of unit in display
 				store_color:
@@ -723,16 +1017,87 @@ add_to_playing_field:
 	la $t8, L3_BLOCK
 	# check if s3 == t8
 	beq $s2, $t8, set_L
+	
+	# store S_BLOCK address in $t8 and check if we have a S block
+	la $t8, S0_BLOCK
+	beq $s2, $t8, set_S
+	
+	la $t8, S1_BLOCK
+	beq $s2, $t8, set_S
+	
+	la $t8, S2_BLOCK
+	beq $s2, $t8, set_S
+	
+	la $t8, S3_BLOCK
+	beq $s2, $t8, set_S
+
+	# store I_BLOCK address in $t8 and check if we have a I block
+	la $t8, I0_BLOCK
+	beq $s2, $t8, set_I
+	
+	la $t8, I1_BLOCK
+	beq $s2, $t8, set_I
+	
+	la $t8, I2_BLOCK
+	beq $s2, $t8, set_I
+	
+	la $t8, I3_BLOCK
+	beq $s2, $t8, set_I
+
+	# store Z_BLOCK address in $t8 and check if we have a Z block
+	la $t8, Z0_BLOCK
+	beq $s2, $t8, set_Z
+	
+	la $t8, Z1_BLOCK
+	beq $s2, $t8, set_Z
+	
+	la $t8, Z2_BLOCK
+	beq $s2, $t8, set_Z
+	
+	la $t8, Z3_BLOCK
+	beq $s2, $t8, set_Z
+
+	# store O_BLOCK address in $t8 and check if we have a O block
+	la $t8, O0_BLOCK
+	beq $s2, $t8, set_O
+	
+	# store T_BLOCK address in $t8 and check if we have a T block
+	la $t8, T0_BLOCK
+	beq $s2, $t8, set_T
+	
+	la $t8, T1_BLOCK
+	beq $s2, $t8, set_T
+	
+	la $t8, T2_BLOCK
+	beq $s2, $t8, set_T
+	
+	la $t8, T3_BLOCK
+	beq $s2, $t8, set_T
 
 	set_J:
 		li $t0, J_NUM
 		j add_playing_field_row_loop
-
 	set_L:
 		li $t0, L_NUM
 		j add_playing_field_row_loop
-	
+	set_S:
+		li $t0, S_NUM
+		j add_playing_field_row_loop
+	set_I:
+		li $t0, I_NUM
+		j add_playing_field_row_loop
+	set_Z:
+		li $t0, Z_NUM
+		j add_playing_field_row_loop
+		
+	set_O:
+		li $t0, O_NUM
+		j add_playing_field_row_loop
 
+	set_T:
+		li $t0, T_NUM
+		j add_playing_field_row_loop
+	
 	add_playing_field_row_loop:
 		# initialize col index
 		li $t2, -1
@@ -1149,6 +1514,7 @@ draw_tet:
 	la $t7, J3_BLOCK
 	beq $t3, $t7, set_J_COLOR
 	
+	# for L block
 	la $t7, L0_BLOCK
 	beq $t3, $t7, set_L_COLOR
 	
@@ -1161,6 +1527,62 @@ draw_tet:
 	la $t7, L3_BLOCK
 	beq $t3, $t7, set_L_COLOR
 
+	# for S block
+	la $t7, S0_BLOCK
+	beq $t3, $t7, set_S_COLOR
+
+	la $t7, S1_BLOCK
+	beq $t3, $t7, set_S_COLOR
+	
+	la $t7, S2_BLOCK
+	beq $t3, $t7, set_S_COLOR
+	
+	la $t7, S3_BLOCK
+	beq $t3, $t7, set_S_COLOR
+	
+	# for I block
+	la $t7, I0_BLOCK
+	beq $t3, $t7, set_I_COLOR
+	
+	la $t7, I1_BLOCK
+	beq $t3, $t7, set_I_COLOR
+	
+	la $t7, I2_BLOCK
+	beq $t3, $t7, set_I_COLOR
+	
+	la $t7, I3_BLOCK
+	beq $t3, $t7, set_I_COLOR
+
+	# for Z block
+	la $t7, Z0_BLOCK
+	beq $t3, $t7, set_Z_COLOR
+	
+	la $t7, Z1_BLOCK
+	beq $t3, $t7, set_Z_COLOR
+	
+	la $t7, Z2_BLOCK
+	beq $t3, $t7, set_Z_COLOR
+	
+	la $t7, Z3_BLOCK
+	beq $t3, $t7, set_Z_COLOR
+	
+	# for O block
+	la $t7, O0_BLOCK
+	beq $t3, $t7, set_O_COLOR
+
+	# for T block
+	la $t7, T0_BLOCK
+	beq $t3, $t7, set_T_COLOR
+	
+	la $t7, T1_BLOCK
+	beq $t3, $t7, set_T_COLOR
+	
+	la $t7, T2_BLOCK
+	beq $t3, $t7, set_T_COLOR
+	
+	la $t7, T3_BLOCK
+	beq $t3, $t7, set_T_COLOR
+
 	# t7 = byte located at current block address (i.e. 0 or 1)
 	# t8 = start row + row_offset
 	# t9 = start col + col_offset
@@ -1171,6 +1593,26 @@ draw_tet:
 
 	set_L_COLOR:
 		li $t6, L_COLOUR
+		j setup_draw_tet
+		
+	set_S_COLOR:
+		li $t6, S_COLOUR
+		j setup_draw_tet
+
+	set_I_COLOR:
+		li $t6, I_COLOUR
+		j setup_draw_tet
+
+	set_Z_COLOR:
+		li $t6, Z_COLOUR
+		j setup_draw_tet
+		
+	set_O_COLOR:
+		li $t6, O_COLOUR
+		j setup_draw_tet
+		
+	set_T_COLOR:
+		li $t6, T_COLOUR
 		j setup_draw_tet
 	
 	setup_draw_tet:
