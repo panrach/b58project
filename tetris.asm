@@ -157,9 +157,9 @@ Z2_BLOCK:
 	.byte 0 1 1 0
 	.byte 0 0 0 0
 Z3_BLOCK:
-	.byte 0 1 0 0
-	.byte 0 1 1 0
 	.byte 0 0 1 0
+	.byte 0 1 1 0
+	.byte 0 1 0 0
 	.byte 0 0 0 0
 	
 # O block and all its rotations
@@ -181,9 +181,9 @@ T1_BLOCK:
 	.byte 0 1 0 0
 	.byte 0 0 0 0
 T2_BLOCK:
-	.byte 0 0 0 0
 	.byte 0 1 0 0
 	.byte 1 1 1 0
+	.byte 0 0 0 0
 	.byte 0 0 0 0
 T3_BLOCK:
 	.byte 0 1 0 0
@@ -897,13 +897,33 @@ game_loop:
 		
 		# set up arg for draw score
 		# draw 16s digit, just picked on but later you would do based on acc score
-		la $a0, sixteens_digit_4
+		
+		# get 16s digit and put into a0 as arg for 
+		move $t0, $s4
+		srl $t0, $t0, 2 #to get 16s digit, logical shift right 2 bytes
+		
+		# based on number in t0, load approiate label address into a0 
+		# if t0 = 0xa then sixteen_digit_a loaded into a0
+		# 16 if statements
+		
 		jal draw_digit
 		
 		# draw 1s digit
-		la $a0, ones_digit_a
-		jal draw_digit
+		# get 1s digit
 		
+		
+		
+
+		#to get 1s digit, logical shift left 2 bytes
+               #    then logical shift right 2 bytes
+               	move $t0, $s4
+               	sll $t0, $t0, 2
+               	srl $t0, $t0, 2
+               	
+               	#if statements
+               	
+               	jal draw_digit
+               	
 		# draw held tet
 		jal draw_held_tet
 		
