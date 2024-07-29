@@ -252,12 +252,12 @@ LEVEL_2_DISPLAY: .word  54 86 -1
 LEVEL_3_DISPLAY: .word  22 54 86 -1
 
 # after reaching a score of score cap, move on to next level
-.eqv LEVEL_1_CAP 1
-.eqv LEVEL_2_CAP 2
+.eqv LEVEL_1_CAP 10
+.eqv LEVEL_2_CAP 20
 
-.eqv LEVEL_1_GRAVITY 750  # how many milliseconds should pass before moving 1 block down
-.eqv LEVEL_2_GRAVITY 500 
-.eqv LEVEL_3_GRAVITY 250
+.eqv LEVEL_1_GRAVITY 700  # how many milliseconds should pass before moving 1 block down
+.eqv LEVEL_2_GRAVITY 450 
+.eqv LEVEL_3_GRAVITY 150
 
 # what number each tet is assoicated with (used for picking random piece)
 # also used for colouring
