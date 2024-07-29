@@ -211,7 +211,7 @@ sixteens_digit_f: .word 24 25 26 40 56 57 58 72 88 -1
 
 
 ones_digit_0: .word 28 29 30 44 46 60 62 76 78 92 93 94 -1
-ones_digit_1: .word 30 46 62 78 94
+ones_digit_1: .word 30 46 62 78 94 -1
 ones_digit_2: .word 28 29 30 46 60 61 62 76 92 93 94 -1
 ones_digit_3: .word 28 29 30 46 60 61 62 78 92 93 94 -1
 ones_digit_4: .word 28 30 44 46 60 61 62 78 94 -1
@@ -225,7 +225,7 @@ ones_digit_b: .word 28 44 60 61 62 76 78 92 93 94 -1
 ones_digit_c: .word 28 29 30 44 60 76 92 93 94 -1
 ones_digit_d: .word 30 46 60 61 62 76 78 92 93 94 -1
 ones_digit_e: .word 28 29 30 44 60 61 62 76 92 93 94 -1
-ones_digit_f: .word 28 29 30 44 60 61 62 78 92 -1
+ones_digit_f: .word 28 29 30 44 60 61 62 76 92 -1
 
 
 .eqv HOLD_BUTTON 0x63
@@ -233,7 +233,7 @@ ones_digit_f: .word 28 29 30 44 60 61 62 78 92 -1
 .eqv UNIT_SIZE 4	# Size of each unit in bytes
 
 .eqv GRID_DARK 0x0	# dark colour in grid
-.eqv GRID_LIGHT 0x101010 	# light colour in grid 
+.eqv GRID_LIGHT 0x1c1c1c	# light colour in grid 
 .eqv BORDER_BLACK 0x444444	# black for border
 
 .eqv ROW_SIZE 32	# number of rows (256/8)
@@ -876,7 +876,6 @@ game_loop:
 		
 		
 		# figure out what level to draw based on gravity value and draw level
-		
 		beq $s6, LEVEL_1_GRAVITY, setup_level_1
 		beq $s6, LEVEL_2_GRAVITY, setup_level_2
 		beq $s6, LEVEL_3_GRAVITY, setup_level_3
@@ -894,39 +893,219 @@ game_loop:
 		draw_level:
 			jal draw_digit
 		
-		
 		# set up arg for draw score
 		# draw 16s digit, just picked on but later you would do based on acc score
-		
 		# get 16s digit and put into a0 as arg for 
 		move $t0, $s4
-		srl $t0, $t0, 2 #to get 16s digit, logical shift right 2 bytes
+		srl $t0, $t0, 4 #to get 16s digit, logical shift right 4 bits
+    		# Mask the least significant 4 bits to get the digit in the 16s place
+   		andi $t0, $t0, 0xF    # Mask the least significant 4 bits (0xF = 1111 in binary)
 		
+		# if t0 == 0, then draw 16s digit 0
+		beq $t0, 0, draw_0_sixteens
+		
+		# if t0 == 1, then draw 16s digit 1
+		beq $t0, 1, draw_1_sixteens
+
+		# if t0 == 2, then draw 16s digit 2
+		beq $t0, 2, draw_2_sixteens
+	
+		# if t0 == 3, then draw 16s digit 3
+		beq $t0, 3, draw_3_sixteens
+
+		# if t0 == 4, then draw 16s digit 4
+		beq $t0, 4, draw_4_sixteens
+
+		# if t0 == 5, then draw 16s digit 5
+		beq $t0, 5, draw_5_sixteens
+
+		# if t0 == 6, then draw 16s digit 6
+		beq $t0, 6, draw_6_sixteens
+
+		# if t0 == 7, then draw 16s digit 7
+		beq $t0, 7, draw_7_sixteens
+
+		# if t0 == 8, then draw 16s digit 8
+		beq $t0, 8, draw_8_sixteens
+
+		# if t0 == 9, then draw 16s digit 9
+		beq $t0, 9, draw_9_sixteens
+
+		# if t0 == a, then draw 16s digit a
+		beq $t0, 0xa, draw_a_sixteens
+
+		# if t0 == b, then draw 16s digit b
+		beq $t0, 0xb, draw_b_sixteens
+
+		# if t0 == c, then draw 16s digit c
+		beq $t0, 0xc, draw_c_sixteens
+
+		# if t0 == d, then draw 16s digit d
+		beq $t0, 0xd, draw_d_sixteens
+
+		# if t0 == e, then draw 16s digit e
+		beq $t0, 0xe, draw_e_sixteens
+
+		# if t0 == f, then draw 16s digit f
+		beq $t0, 0xf, draw_f_sixteens
+
+		draw_0_sixteens:
+			la $a0, sixteens_digit_0
+			jal draw_sixteens
+			
+		draw_1_sixteens:
+			la $a0, sixteens_digit_1
+			jal draw_sixteens
+
+		draw_2_sixteens:
+			la $a0, sixteens_digit_2
+			jal draw_sixteens
+		
+		draw_3_sixteens:
+			la $a0, sixteens_digit_3
+			jal draw_sixteens
+
+		draw_4_sixteens:
+			la $a0, sixteens_digit_4
+			jal draw_sixteens
+		
+		draw_5_sixteens:
+			la $a0, sixteens_digit_5
+			jal draw_sixteens
+		
+		draw_6_sixteens:
+			la $a0, sixteens_digit_6
+			jal draw_sixteens
+		
+		draw_7_sixteens:
+			la $a0, sixteens_digit_7
+			jal draw_sixteens
+		
+		draw_8_sixteens:
+			la $a0, sixteens_digit_8
+			jal draw_sixteens
+		
+		draw_9_sixteens:
+			la $a0, sixteens_digit_9
+			jal draw_sixteens
+
+		draw_a_sixteens:
+			la $a0, sixteens_digit_a
+			jal draw_sixteens
+		
+		draw_b_sixteens:
+			la $a0, sixteens_digit_b
+			jal draw_sixteens
+		
+		draw_c_sixteens:
+			la $a0, sixteens_digit_c
+			jal draw_sixteens
+		
+		draw_d_sixteens:
+			la $a0, sixteens_digit_d
+			jal draw_sixteens
+		
+		draw_e_sixteens:
+			la $a0, sixteens_digit_e
+			jal draw_sixteens
+		
+		draw_f_sixteens:
+			la $a0, sixteens_digit_f
+			jal draw_sixteens
+		
+		draw_sixteens:
+			jal draw_digit
+		
+				
 		# based on number in t0, load approiate label address into a0 
 		# if t0 = 0xa then sixteen_digit_a loaded into a0
 		# 16 if statements
 		
-		jal draw_digit
+		# jal draw_digit
 		
 		# draw 1s digit
 		# get 1s digit
-		
-		
-		
-
-		#to get 1s digit, logical shift left 2 bytes
-               #    then logical shift right 2 bytes
+	
+		# to get 1s digit, logical shift left 2 bytes
+                # then logical shift right 2 bytes
                	move $t0, $s4
-               	sll $t0, $t0, 2
-               	srl $t0, $t0, 2
+               	andi $t0, $t0, 0xF
+               	#sll $t0, $t0, 2
+               	#srl $t0, $t0, 2
                	
-               	#if statements
-               	
-               	jal draw_digit
+        # if statements
+		# if t0 == 0, then draw 16s digit 0
+		beq $t0, $zero, draw_0_ones
+		beq $t0, 1, draw_1_ones
+		beq $t0, 2, draw_2_ones
+		beq $t0, 3, draw_3_ones
+		beq $t0, 4, draw_4_ones
+		beq $t0, 5, draw_5_ones
+		beq $t0, 6, draw_6_ones
+		beq $t0, 7, draw_7_ones
+		beq $t0, 8, draw_8_ones
+		beq $t0, 9, draw_9_ones
+		beq $t0, 0xa, draw_a_ones
+		beq $t0, 0xb, draw_b_ones
+		beq $t0, 0xc, draw_c_ones
+		beq $t0, 0xd, draw_d_ones
+		beq $t0, 0xe, draw_e_ones
+		beq $t0, 0xf, draw_f_ones
+		
+		draw_0_ones:
+			la $a0, ones_digit_0
+			jal draw_ones
+		draw_1_ones:
+			la $a0, ones_digit_1
+			jal draw_ones
+		draw_2_ones:
+			la $a0, ones_digit_2
+			j draw_ones
+		draw_3_ones:
+			la $a0, ones_digit_3
+			jal draw_ones
+		draw_4_ones:
+			la $a0, ones_digit_4
+			jal draw_ones
+		draw_5_ones:
+			la $a0, ones_digit_5
+			jal draw_ones
+		draw_6_ones:
+			la $a0, ones_digit_6
+			jal draw_ones
+		draw_7_ones:
+			la $a0, ones_digit_7
+			jal draw_ones
+		draw_8_ones:
+			la $a0, ones_digit_8
+			jal draw_ones
+		draw_9_ones:
+			la $a0, ones_digit_9
+			jal draw_ones
+		draw_a_ones:
+			la $a0, ones_digit_a
+			jal draw_ones
+		draw_b_ones:
+			la $a0, ones_digit_b
+			jal draw_ones
+		draw_c_ones:
+			la $a0, ones_digit_c
+			jal draw_ones
+		draw_d_ones:
+			la $a0, ones_digit_d
+			jal draw_ones
+		draw_e_ones:
+			la $a0, ones_digit_e
+			jal draw_ones
+		draw_f_ones:
+			la $a0, ones_digit_f
+			jal draw_ones
+			
+		draw_ones:
+			jal draw_digit
                	
 		# draw held tet
 		jal draw_held_tet
-		
 		jal copy_frame_buffer_to_display
 	
 	#5. Go back to 1
