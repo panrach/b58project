@@ -4,28 +4,36 @@
 # Student2: Rachel Pan, 1009041145, panrach1, r.pan@mail.utoronto.ca
 #
 # Bitmap Display Configuration:
-# - Unit width in pixels: 8 
-# - Unit height in pixels: 8
-# - Display width in pixels:  128
-# - Display height in pixels: 256
+# - Unit width in pixels: 16 
+# - Unit height in pixels: 16
+# - Display width in pixels:  256
+# - Display height in pixels: 512
 # - Base Address for Display: 0x10008000 ($gp)
 #
 # Which milestones have been reached in this submission?
 # (See the assignment handout for descriptions of the milestones)
 # - Milestone 1
+# - Milestone 2
+# - Milestone 3
+# - Milestone 4
+# - Milestone 5
 #
 # Which approved features have been implemented?
 # (See the assignment handout for the list of features)
 # Easy Features:
-# 1. (fill in the feature, if any)
-# 2. (fill in the feature, if any)
-# ... (add more if necessary)
+# 1. Feature 1: Gravity
+# 2. Feature 2: Increasing gravity
+# 3. Feature 6: Levels with harder features (gravity increases)
+# 4. Feature 11: All tetrominoes have a different color
+# 5. Feature 14: Save feature
 # Hard Features:
-# 1. (fill in the feature, if any)
-# 2. (fill in the feature, if any)
-# ... (add more if necessary)
+# 1. Feature 1: Tracking score and display in pixels
+# 2. Feature 2: Implement the full set of tetrominoes 
 # How to play:
 # Do not hold keys 
+# Score on the screen is displayed in hex
+# Press C to hold the block
+
 # (Include any instructions)
 # Link to video demonstration for final submission:
 # - (insert YouTube / MyMedia / other URL here). Make sure we can view it!
@@ -37,7 +45,6 @@
 # - (write here, if any)
 #
 #####################################################################
-# hi janani
 ##############################################################################
 
 	.data
