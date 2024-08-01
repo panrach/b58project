@@ -43,6 +43,8 @@
 # (Include any instructions)
 # Link to video demonstration for final submission:
 # - (insert YouTube / MyMedia / other URL here). Make sure we can view it!
+# We finished all 5 milestones by the midpoint checkpoint so we demo-ed it 
+# in person to John 
 #
 # Are you OK with us sharing the video with people outside course staff?
 # - yes / no
