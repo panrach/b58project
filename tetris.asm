@@ -252,8 +252,8 @@ LEVEL_2_DISPLAY: .word  54 86 -1
 LEVEL_3_DISPLAY: .word  22 54 86 -1
 
 # after reaching a score of score cap, move on to next level
-.eqv LEVEL_1_CAP 10
-.eqv LEVEL_2_CAP 20
+.eqv LEVEL_1_CAP 16
+.eqv LEVEL_2_CAP 32
 
 .eqv LEVEL_1_GRAVITY 700  # how many milliseconds should pass before moving 1 block down
 .eqv LEVEL_2_GRAVITY 450 
@@ -682,11 +682,11 @@ game_loop:
 		move $s2, $s7
 		move $s7, $t5
 		
-		# set up arge for check_collision
+		# set up arg for check_collision
 		li $a0, HOLD_BUTTON
 		move $a1, $s2 
 		li $a2, START_TET_ROW 
-		li $s3, START_TET_COL
+		li $a3, START_TET_COL
 		j check_collision
 		
 		if_nothing_held:
@@ -951,67 +951,67 @@ game_loop:
 
 		draw_0_sixteens:
 			la $a0, sixteens_digit_0
-			jal draw_sixteens
+			j draw_sixteens
 			
 		draw_1_sixteens:
 			la $a0, sixteens_digit_1
-			jal draw_sixteens
+			j draw_sixteens
 
 		draw_2_sixteens:
 			la $a0, sixteens_digit_2
-			jal draw_sixteens
+			j draw_sixteens
 		
 		draw_3_sixteens:
 			la $a0, sixteens_digit_3
-			jal draw_sixteens
+			j draw_sixteens
 
 		draw_4_sixteens:
 			la $a0, sixteens_digit_4
-			jal draw_sixteens
+			j draw_sixteens
 		
 		draw_5_sixteens:
 			la $a0, sixteens_digit_5
-			jal draw_sixteens
+			j draw_sixteens
 		
 		draw_6_sixteens:
 			la $a0, sixteens_digit_6
-			jal draw_sixteens
+			j draw_sixteens
 		
 		draw_7_sixteens:
 			la $a0, sixteens_digit_7
-			jal draw_sixteens
+			j draw_sixteens
 		
 		draw_8_sixteens:
 			la $a0, sixteens_digit_8
-			jal draw_sixteens
+			j draw_sixteens
 		
 		draw_9_sixteens:
 			la $a0, sixteens_digit_9
-			jal draw_sixteens
+			j draw_sixteens
 
 		draw_a_sixteens:
 			la $a0, sixteens_digit_a
-			jal draw_sixteens
+			j draw_sixteens
 		
 		draw_b_sixteens:
 			la $a0, sixteens_digit_b
-			jal draw_sixteens
+			j draw_sixteens
 		
 		draw_c_sixteens:
 			la $a0, sixteens_digit_c
-			jal draw_sixteens
+			j draw_sixteens
 		
 		draw_d_sixteens:
 			la $a0, sixteens_digit_d
-			jal draw_sixteens
+			j draw_sixteens
 		
 		draw_e_sixteens:
 			la $a0, sixteens_digit_e
-			jal draw_sixteens
+			j draw_sixteens
 		
 		draw_f_sixteens:
 			la $a0, sixteens_digit_f
-			jal draw_sixteens
+			j draw_sixteens
 		
 		draw_sixteens:
 			jal draw_digit
@@ -1054,52 +1054,52 @@ game_loop:
 		
 		draw_0_ones:
 			la $a0, ones_digit_0
-			jal draw_ones
+			j draw_ones
 		draw_1_ones:
 			la $a0, ones_digit_1
-			jal draw_ones
+			j draw_ones
 		draw_2_ones:
 			la $a0, ones_digit_2
 			j draw_ones
 		draw_3_ones:
 			la $a0, ones_digit_3
-			jal draw_ones
+			j draw_ones
 		draw_4_ones:
 			la $a0, ones_digit_4
-			jal draw_ones
+			j draw_ones
 		draw_5_ones:
 			la $a0, ones_digit_5
-			jal draw_ones
+			j draw_ones
 		draw_6_ones:
 			la $a0, ones_digit_6
-			jal draw_ones
+			j draw_ones
 		draw_7_ones:
 			la $a0, ones_digit_7
-			jal draw_ones
+			j draw_ones
 		draw_8_ones:
 			la $a0, ones_digit_8
-			jal draw_ones
+			j draw_ones
 		draw_9_ones:
 			la $a0, ones_digit_9
-			jal draw_ones
+			j draw_ones
 		draw_a_ones:
 			la $a0, ones_digit_a
-			jal draw_ones
+			j draw_ones
 		draw_b_ones:
 			la $a0, ones_digit_b
-			jal draw_ones
+			j draw_ones
 		draw_c_ones:
 			la $a0, ones_digit_c
-			jal draw_ones
+			j draw_ones
 		draw_d_ones:
 			la $a0, ones_digit_d
-			jal draw_ones
+			j draw_ones
 		draw_e_ones:
 			la $a0, ones_digit_e
-			jal draw_ones
+			j draw_ones
 		draw_f_ones:
 			la $a0, ones_digit_f
-			jal draw_ones
+			j draw_ones
 			
 		draw_ones:
 			jal draw_digit
