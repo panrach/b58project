@@ -12,10 +12,6 @@
 #
 # Which milestones have been reached in this submission?
 # (See the assignment handout for descriptions of the milestones)
-# - Milestone 1
-# - Milestone 2
-# - Milestone 3
-# - Milestone 4
 # - Milestone 5
 #
 # Which approved features have been implemented?
@@ -23,16 +19,26 @@
 # Easy Features:
 # 1. Feature 1: Gravity
 # 2. Feature 2: Increasing gravity
-# 3. Feature 6: Levels with harder features (gravity increases)
+# 3. Feature 6: Levels with increased difficulty (gravity increases)
 # 4. Feature 11: All tetrominoes have a different color
 # 5. Feature 14: Save feature
 # Hard Features:
 # 1. Feature 1: Tracking score and display in pixels
 # 2. Feature 2: Implement the full set of tetrominoes 
 # How to play:
-# Do not hold keys 
-# Score on the screen is displayed in hex
-# Press C to hold the block
+# Press W to rotate
+#	A to move 1 left
+# 	D to move 1 right
+#	S to move 1 down
+#	C to save the tetromineo/use saved 
+# Do not hold the keys 
+# Score on the screen is displayed in hex, it count lines cleared
+# There are 3 levels
+# Dot to the right of score represent level
+# 	level 1 is 1 dot, level 2 is 2 dots, level 3 is 3 dots
+# Gravity increaseds with level
+# Start at level 1, get 16 pts to get to level 2, 32 pts to get to level 3 
+
 
 # (Include any instructions)
 # Link to video demonstration for final submission:
@@ -297,8 +303,8 @@ LEVEL_3_DISPLAY: .word  22 54 86 -1
 # to store playing field
 # 0 if unoccupied
 # number reping colour is occupied
-playing_field: .byte 0:512
-frame_buffer: .word 0:512
+playing_field: .byte 0:336  # 14 * 24
+frame_buffer: .word 0:512   # 16 * 32
 
 ##############################################################################
 # Code
